@@ -1,0 +1,42 @@
+model Event {
+    id              String        @id @default(uuid())
+    host            Host          @relation(fields: [hostId], references: [id], name: "hostedEvents")
+    hostId          String
+    title           String
+    type            String
+    description     String
+    location        String
+    dateTime        DateTime
+    minParticipants Int?
+    maxParticipants Int?
+    joiningFee      Int           @default(0)
+    currency        String        @default("BDT")
+    status          EventStatus   @default(OPEN)
+    images          EventImage[]
+    participants    Participant[]
+    createdAt       DateTime      @default(now())
+    updatedAt       DateTime      @updatedAt
+
+    payments Payment[]
+}
+
+
+model EventImage {
+  id      String @id @default(uuid())
+  event   Event  @relation(fields: [eventId], references: [id])
+  eventId String
+  url     String
+  alt     String?
+}
+
+
+model Participant {
+  id        String   @id @default(uuid())
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  status    JoinStatus @default(ACCEPTED)
+  paid      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+}

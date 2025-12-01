@@ -1,0 +1,58 @@
+model User {
+    id            String   @id @default(uuid())
+    name          String
+    email         String   @unique
+    password      String
+    role          UserRole @default(USER)
+    profilePhoto  String?
+    contactNumber String
+    address       String?
+    gender        Gender
+    interests     String[]
+    isDeleted     Boolean  @default(false)
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+
+    @@map("users")
+    participants Participant[]
+    reviews Review[]
+    payments Payment[]
+}
+
+model Admin {
+    id            String   @id @default(uuid())
+    name          String
+    email         String   @unique
+    password      String
+    role          UserRole @default(USER)
+    profilePhoto  String?
+    contactNumber String
+    address       String?
+    gender        Gender
+    interests     String[]
+    isDeleted     Boolean  @default(false)
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+
+    @@map("admins")
+}
+
+model Host {
+    id            String   @id @default(uuid())
+    name          String
+    email         String   @unique
+    password      String
+    role          UserRole @default(USER)
+    profilePhoto  String?
+    contactNumber String
+    address       String
+    gender        Gender
+    interests     String[]
+    isDeleted     Boolean  @default(false)
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+
+    @@map("hosts")
+    events Event[] @relation(name: "hostedEvents")
+    reviews Review[]
+}

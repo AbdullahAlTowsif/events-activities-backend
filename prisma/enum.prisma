@@ -1,0 +1,31 @@
+enum UserRole {
+    USER
+    HOST
+    ADMIN
+}
+
+enum Gender {
+    MALE
+    FEMALE
+}
+
+enum EventStatus {
+    OPEN
+    FULL
+    CANCELLED
+    COMPLETED
+}
+
+enum JoinStatus {
+    PENDING
+    ACCEPTED
+    REJECTED
+    LEFT
+}
+
+enum PaymentStatus {
+    PENDING
+    SUCCESS
+    FAILED
+    REFUNDED
+}
