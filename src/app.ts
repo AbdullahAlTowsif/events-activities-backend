@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from "cookie-parser"
 import { envVars } from './app/config/env';
 import notFound from './app/middlewares/notFound';
+import router from './app/routes';
 
 const app: Application = express();
 
@@ -17,7 +18,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
-// app.use("/api", router);
+app.use("/api", router);
 
 app.get('/', (req: Request, res: Response) => {
     res.send({

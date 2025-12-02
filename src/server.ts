@@ -1,9 +1,10 @@
 import { Server } from 'http';
 import app from './app';
 import { envVars } from './app/config/env';
+import { seedAdmin } from './app/utils/seedAdmin';
 
 
-async function bootstrap() {
+async function startServer() {
     // This variable will hold our server instance
     let server: Server;
 
@@ -43,4 +44,7 @@ async function bootstrap() {
     }
 }
 
-bootstrap();
+(async () => {
+    await startServer();
+    await seedAdmin();
+})();
