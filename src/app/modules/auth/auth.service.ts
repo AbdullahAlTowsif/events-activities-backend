@@ -42,6 +42,7 @@ const loginPerson = async (payload: {
     };
 };
 
+// issue new access and refresh tokens when the current access token has expired
 const refreshToken = async (token: string) => {
     let decodedData;
     try {

@@ -24,6 +24,7 @@ router.post(
     ),
     AuthController.changePassword
 );
+router.post("/logout", AuthController.logout);
 
 // router.post(
 //     '/forgot-password',

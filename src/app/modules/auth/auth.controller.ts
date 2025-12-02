@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status-codes";
 import { AuthServices } from "./auth.service";
 import catchAsync from "../../utils/catchAsync";
@@ -224,10 +224,32 @@ const getMe = catchAsync(async (req: Request & { user?: any }, res: Response) =>
 });
 
 
+const logout = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+
+    res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none"
+    })
+    res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none"
+    })
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "User Logged Out Successfully",
+        data: null,
+    })
+})
+
 
 export const AuthController = {
     loginPerson,
     refreshToken,
     changePassword,
-    getMe
+    getMe,
+    logout
 };
