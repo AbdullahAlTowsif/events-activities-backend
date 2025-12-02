@@ -1,10 +1,13 @@
-import { Admin, Host, User, UserRole } from "@prisma/client";
+import { Admin, Host, Prisma, User, UserRole } from "@prisma/client";
 import * as bcrypt from 'bcryptjs';
 import { Request } from "express";
 import { fileUploader } from "../../helper/fileUploader";
 import { envVars } from "../../config/env";
 import { prisma } from "../../utils/prisma";
 import { IJWTPayload } from "../../interfaces/common";
+import { IPaginationOptions } from "../../interfaces/pagination";
+import { paginationHelper } from "../../helper/paginationHelper";
+import { personSearchableFields } from "./user.constants";
 
 const createAdmin = async (req: Request): Promise<Admin> => {
 
@@ -167,89 +170,70 @@ const createUser = async (req: Request): Promise<User> => {
 
 
 
-// const getAllFromDB = async (params: any, options: IPaginationOptions) => {
-//     const { page, limit, skip } = paginationHelper.calculatePagination(options);
-//     const { searchTerm, ...filterData } = params;
+const getAllFromDB = async (params: any, options: IPaginationOptions) => {
+    const { page, limit, skip } = paginationHelper.calculatePagination(options);
+    const { searchTerm, ...filterData } = params;
 
-//     const andConditions: Prisma.UserWhereInput[] = [];
+    const andConditions: Prisma.PersonWhereInput[] = [];
 
-//     if (params.searchTerm) {
-//         andConditions.push({
-//             OR: userSearchableFields.map(field => ({
-//                 [field]: {
-//                     contains: params.searchTerm,
-//                     mode: 'insensitive'
-//                 }
-//             }))
-//         })
-//     };
+    if (params.searchTerm) {
+        andConditions.push({
+            OR: personSearchableFields.map(field => ({
+                [field]: {
+                    contains: params.searchTerm,
+                    mode: 'insensitive'
+                }
+            }))
+        })
+    };
 
-//     if (Object.keys(filterData).length > 0) {
-//         andConditions.push({
-//             AND: Object.keys(filterData).map(key => ({
-//                 [key]: {
-//                     equals: (filterData as any)[key]
-//                 }
-//             }))
-//         })
-//     };
+    if (Object.keys(filterData).length > 0) {
+        andConditions.push({
+            AND: Object.keys(filterData).map(key => ({
+                [key]: {
+                    equals: (filterData as any)[key]
+                }
+            }))
+        })
+    };
 
-//     const whereConditions: Prisma.UserWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
+    const whereConditions: Prisma.PersonWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
-//     const result = await prisma.user.findMany({
-//         where: whereConditions,
-//         skip,
-//         take: limit,
-//         orderBy: options.sortBy && options.sortOrder ? {
-//             [options.sortBy]: options.sortOrder
-//         } : {
-//             createdAt: 'desc'
-//         },
-//         select: {
-//             id: true,
-//             email: true,
-//             role: true,
-//             needPasswordChange: true,
-//             status: true,
-//             createdAt: true,
-//             updatedAt: true,
-//             admin: true,
-//             patient: true,
-//             doctor: true
-//         }
-//     });
+    const result = await prisma.person.findMany({
+        where: whereConditions,
+        skip,
+        take: limit,
+        orderBy: options.sortBy && options.sortOrder ? {
+            [options.sortBy]: options.sortOrder
+        } : {
+            createdAt: 'desc'
+        },
+        select: {
+            id: true,
+            email: true,
+            role: true,
+            createdAt: true,
+            updatedAt: true,
+            admin: true,
+            host: true,
+            user: true
+        }
+    });
 
-//     const total = await prisma.user.count({
-//         where: whereConditions
-//     });
+    const total = await prisma.person.count({
+        where: whereConditions
+    });
 
-//     return {
-//         meta: {
-//             page,
-//             limit,
-//             total
-//         },
-//         data: result
-//     };
-// };
+    return {
+        meta: {
+            page,
+            limit,
+            total
+        },
+        data: result
+    };
+};
 
-
-// const changeProfileStatus = async (id: string, status: UserRole) => {
-//     const userData = await prisma.user.findUniqueOrThrow({
-//         where: {
-//             id
-//         }
-//     });
-
-//     const updateUserStatus = await prisma.user.update({
-//         where: {
-//             id
-//         },
-//         data: status
-//     });
-
-//     return updateUserStatus;
-// };
 
 const getMyProfile = async (user: IJWTPayload) => {
     const personInfo = await prisma.user.findUniqueOrThrow({
@@ -391,4 +375,5 @@ export const UserService = {
     createHost,
     createUser,
     getMyProfile,
+    getAllFromDB
 }

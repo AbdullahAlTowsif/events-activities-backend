@@ -8,11 +8,11 @@ import validateRequest from '../../middlewares/validateRequest';
 
 const router = express.Router();
 
-// router.get(
-//     '/',
-//     auth(UserRole.SUPER_ADMIN, UserRole.ADMIN),
-//     UserController.getAllFromDB
-// );
+router.get(
+    '/',
+    auth(UserRole.ADMIN),
+    UserController.getAllFromDB
+);
 
 router.get(
     '/me',
