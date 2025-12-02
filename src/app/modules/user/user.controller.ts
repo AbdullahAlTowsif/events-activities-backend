@@ -74,24 +74,25 @@ const getMyProfile = catchAsync(async (req: Request & { user?: IJWTPayload }, re
 });
 
 
-// const updateMyProfie = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
+const updateMyProfie = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
 
-//     const user = req.user;
+    const user = req.user;
 
-//     const result = await UserService.updateMyProfie(user as IJWTPayload, req);
+    const result = await UserService.updateMyProfie(user as IJWTPayload, req);
 
-//     sendResponse(res, {
-//         statusCode: httpStatus.OK,
-//         success: true,
-//         message: "My profile updated!",
-//         data: result
-//     })
-// });
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "My profile updated!",
+        data: result
+    })
+});
 
 export const UserController = {
     createUser,
     createAdmin,
     createHost,
     getMyProfile,
-    getAllFromDB
+    getAllFromDB,
+    updateMyProfie
 }

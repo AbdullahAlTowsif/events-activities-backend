@@ -312,62 +312,52 @@ const getMyProfile = async (user: IJWTPayload) => {
 };
 
 
-// const updateMyProfie = async (user: IJWTPayload, req: Request) => {
-//     const userInfo = await prisma.user.findUniqueOrThrow({
-//         where: {
-//             email: user?.email,
-//             status: UserStatus.ACTIVE
-//         }
-//     });
+const updateMyProfie = async (user: IJWTPayload, req: Request) => {
+    const personInfo = await prisma.person.findUniqueOrThrow({
+        where: {
+            email: user?.email,
+            isDeleted: false
+        }
+    });
 
-//     const file = req.file;
-//     if (file) {
-//         const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
-//         req.body.profilePhoto = uploadToCloudinary?.secure_url;
-//     }
+    const file = req.file;
+    if (file) {
+        const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
+        req.body.profilePhoto = uploadToCloudinary?.secure_url;
+    }
 
-//     // Prepare update data with proper type conversions
-//     const updateData = { ...req.body };
+    // Prepare update data with proper type conversions
+    const updateData = { ...req.body };
 
-//     // Convert numeric fields from string to number
-//     if (userInfo.role === UserRole.DOCTOR) {
-//         if (updateData.experience) {
-//             updateData.experience = parseInt(updateData.experience);
-//         }
-//         if (updateData.appointmentFee) {
-//             updateData.appointmentFee = parseInt(updateData.appointmentFee);
-//         }
-//     }
+    let profileInfo;
 
-//     let profileInfo;
+    if (personInfo.role === UserRole.ADMIN) {
+        profileInfo = await prisma.admin.update({
+            where: {
+                email: personInfo.email
+            },
+            data: updateData
+        })
+    }
+    else if (personInfo.role === UserRole.HOST) {
+        profileInfo = await prisma.host.update({
+            where: {
+                email: personInfo.email
+            },
+            data: updateData
+        })
+    }
+    else if (personInfo.role === UserRole.USER) {
+        profileInfo = await prisma.user.update({
+            where: {
+                email: personInfo.email
+            },
+            data: updateData
+        })
+    }
 
-//     if (userInfo.role === UserRole.SUPER_ADMIN || userInfo.role === UserRole.ADMIN) {
-//         profileInfo = await prisma.admin.update({
-//             where: {
-//                 email: userInfo.email
-//             },
-//             data: updateData
-//         })
-//     }
-//     else if (userInfo.role === UserRole.DOCTOR) {
-//         profileInfo = await prisma.doctor.update({
-//             where: {
-//                 email: userInfo.email
-//             },
-//             data: updateData
-//         })
-//     }
-//     else if (userInfo.role === UserRole.PATIENT) {
-//         profileInfo = await prisma.patient.update({
-//             where: {
-//                 email: userInfo.email
-//             },
-//             data: updateData
-//         })
-//     }
-
-//     return { ...profileInfo };
-// }
+    return { ...profileInfo };
+}
 
 
 export const UserService = {
@@ -375,5 +365,6 @@ export const UserService = {
     createHost,
     createUser,
     getMyProfile,
-    getAllFromDB
+    getAllFromDB,
+    updateMyProfie
 }
