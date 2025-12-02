@@ -1,3 +1,18 @@
+model Person {
+    id        String   @id @default(uuid())
+    email     String   @unique
+    password  String
+    role      UserRole @default(USER)
+    isDeleted Boolean  @default(false)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    user      User?
+    admin     Admin?
+    host      Host?
+
+    @@map("persons")
+}
+
 model User {
     id            String   @id @default(uuid())
     name          String
@@ -13,10 +28,13 @@ model User {
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
 
-    @@map("users")
     participants Participant[]
-    reviews Review[]
-    payments Payment[]
+    reviews      Review[]
+    payments     Payment[]
+
+    person Person @relation(fields: [email], references: [email])
+
+    @@map("users")
 }
 
 model Admin {
@@ -33,6 +51,8 @@ model Admin {
     isDeleted     Boolean  @default(false)
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
+
+    person Person @relation(fields: [email], references: [email])
 
     @@map("admins")
 }
@@ -52,7 +72,10 @@ model Host {
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
 
-    @@map("hosts")
-    events Event[] @relation(name: "hostedEvents")
+    events  Event[]  @relation(name: "hostedEvents")
     reviews Review[]
+
+    person Person @relation(fields: [email], references: [email])
+
+    @@map("hosts")
 }

@@ -5,7 +5,7 @@ import catchAsync from "../../utils/catchAsync";
 import { envVars } from "../../config/env";
 import sendResponse from "../../utils/sendResponse";
 
-const loginUser = catchAsync(async (req: Request, res: Response) => {
+const loginPerson = catchAsync(async (req: Request, res: Response) => {
     const accessTokenExpiresIn = envVars.JWT_ACCESS_EXPIRES as string;
     const refreshTokenExpiresIn = envVars.JWT_REFRESH_EXPIRES as string;
 
@@ -58,7 +58,7 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     } else {
         refreshTokenMaxAge = 1000 * 60 * 60 * 24 * 30; // default 30 days
     }
-    const result = await AuthServices.loginUser(req.body);
+    const result = await AuthServices.loginPerson(req.body);
     const { refreshToken, accessToken } = result;
     res.cookie("accessToken", accessToken, {
         secure: true,
@@ -226,7 +226,7 @@ const getMe = catchAsync(async (req: Request & { user?: any }, res: Response) =>
 
 
 export const AuthController = {
-    loginUser,
+    loginPerson,
     refreshToken,
     changePassword,
     getMe

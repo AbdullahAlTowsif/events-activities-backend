@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post(
     '/login',
-    AuthController.loginUser
+    AuthController.loginPerson
 );
 
 router.post(

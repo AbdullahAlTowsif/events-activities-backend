@@ -10,8 +10,8 @@ const createAdmin = async (req: Request): Promise<Admin> => {
 
     const isAdminExists = await prisma.admin.findFirst({
         where: {
-            name: req.body.name,
-            email: req.body.email
+            name: req.body.admin.name,
+            email: req.body.admin.email
         }
     })
 
@@ -23,24 +23,35 @@ const createAdmin = async (req: Request): Promise<Admin> => {
 
     if (file) {
         const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
-        req.body.profilePhoto = uploadToCloudinary?.secure_url
+        req.body.admin.profilePhoto = uploadToCloudinary?.secure_url
     }
 
     const hashedPassword: string = await bcrypt.hash(req.body.password, Number(envVars.BCRYPT_SALT_ROUND))
 
-    const adminData = {
-        name: req.body.name,
-        email: req.body.email,
+    const personData = {
+        // name: req.body.admin.name,
+        email: req.body.admin.email,
         password: hashedPassword,
         role: UserRole.ADMIN,
-        contactNumber: req.body.contactNumber,
-        gender: req.body.gender,
-        interests: req.body.interests || []
+        // contactNumber: req.body.admin.contactNumber,
+        // gender: req.body.admin.gender,
+        // interests: req.body.admin.interests || []
     }
 
-    const result = await prisma.admin.create({
-        data: adminData
-    })
+    const result = await prisma.$transaction(async (transactionClient) => {
+        await transactionClient.person.create({
+            data: personData
+        });
+
+        const createdAdminData = await transactionClient.admin.create({
+            data: {
+                ...req.body.admin,
+                password: hashedPassword
+            }
+        });
+
+        return createdAdminData;
+    });
 
     return result;
 };
@@ -50,8 +61,8 @@ const createHost = async (req: Request): Promise<Host> => {
 
     const isHostExists = await prisma.host.findFirst({
         where: {
-            name: req.body.name,
-            email: req.body.email
+            name: req.body.host.name,
+            email: req.body.host.email
         }
     })
 
@@ -63,25 +74,36 @@ const createHost = async (req: Request): Promise<Host> => {
 
     if (file) {
         const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
-        req.body.profilePhoto = uploadToCloudinary?.secure_url
+        req.body.host.profilePhoto = uploadToCloudinary?.secure_url
     }
 
     const hashedPassword: string = await bcrypt.hash(req.body.password, Number(envVars.BCRYPT_SALT_ROUND))
 
-    const hostData = {
-        name: req.body.name,
-        email: req.body.email,
+    const personData = {
+        // name: req.body.host.name,
+        email: req.body.host.email,
         password: hashedPassword,
         role: UserRole.HOST,
-        contactNumber: req.body.contactNumber,
-        address: req.body.address,
-        gender: req.body.gender,
-        interests: req.body.interests || []
+        // contactNumber: req.body.host.contactNumber,
+        // address: req.body.host.address,
+        // gender: req.body.host.gender,
+        // interests: req.body.host.interests || []
     }
 
-    const result = await prisma.host.create({
-        data: hostData
-    })
+    const result = await prisma.$transaction(async (transactionClient) => {
+        await transactionClient.person.create({
+            data: personData
+        });
+
+        const createdHostData = await transactionClient.host.create({
+            data: {
+                ...req.body.host,
+                password: hashedPassword
+            }
+        });
+
+        return createdHostData;
+    });
 
     return result;
 };
@@ -91,8 +113,8 @@ const createUser = async (req: Request): Promise<User> => {
 
     const isUserExists = await prisma.user.findFirst({
         where: {
-            name: req.body.name,
-            email: req.body.email
+            name: req.body.user.name,
+            email: req.body.user.email
         }
     })
 
@@ -106,26 +128,37 @@ const createUser = async (req: Request): Promise<User> => {
 
     if (file) {
         const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
-        req.body.profilePhoto = uploadToCloudinary?.secure_url
+        req.body.user.profilePhoto = uploadToCloudinary?.secure_url
     }
 
     const hashedPassword: string = await bcrypt.hash(req.body.password, Number(envVars.BCRYPT_SALT_ROUND))
 
-    const userData = {
-        name: req.body.name,
-        email: req.body.email,
+    const personData = {
+        // name: req.body.user.name,
+        email: req.body.user.email,
         password: hashedPassword,
         role: UserRole.USER,
-        contactNumber: req.body.contactNumber,
-        address: req.body.address,
-        gender: req.body.gender,
-        interests: req.body.interests || []
+        // contactNumber: req.body.user.contactNumber,
+        // address: req.body.user.address,
+        // gender: req.body.user.gender,
+        // interests: req.body.user.interests || []
     }
-    console.log("host data", userData);
+    console.log("user data", personData);
 
-    const result = await prisma.user.create({
-        data: userData
-    })
+    const result = await prisma.$transaction(async (transactionClient) => {
+        await transactionClient.person.create({
+            data: personData
+        });
+
+        const createdUserData = await transactionClient.user.create({
+            data: {
+                ...req.body.user,
+                password: hashedPassword
+            }
+        });
+
+        return createdUserData;
+    });
 
     // console.log("result", result);
 
@@ -199,6 +232,7 @@ const createUser = async (req: Request): Promise<User> => {
 //         data: result
 //     };
 // };
+
 
 // const changeProfileStatus = async (id: string, status: UserRole) => {
 //     const userData = await prisma.user.findUniqueOrThrow({

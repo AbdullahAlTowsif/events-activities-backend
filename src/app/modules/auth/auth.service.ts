@@ -4,32 +4,33 @@ import { prisma } from '../../utils/prisma';
 import { jwtHelper } from '../../middlewares/jwtHelper';
 import { envVars } from '../../config/env';
 
-const loginUser = async (payload: {
+const loginPerson = async (payload: {
     email: string,
     password: string
 }) => {
-    const userData = await prisma.user.findUniqueOrThrow({
+    const personData = await prisma.person.findUniqueOrThrow({
         where: {
-            email: payload.email
+            email: payload.email,
+            isDeleted: false
         }
     });
 
-    const isCorrectPassword: boolean = await bcrypt.compare(payload.password, userData.password);
+    const isCorrectPassword: boolean = await bcrypt.compare(payload.password, personData.password);
 
     if (!isCorrectPassword) {
         throw new Error("Password incorrect!")
     }
     const accessToken = jwtHelper.generateToken({
-        email: userData.email,
-        role: userData.role
+        email: personData.email,
+        role: personData.role
     },
         envVars.JWT_ACCESS_SECRET as Secret,
         envVars.JWT_ACCESS_EXPIRES as string
     );
 
     const refreshToken = jwtHelper.generateToken({
-        email: userData.email,
-        role: userData.role
+        email: personData.email,
+        role: personData.role
     },
         envVars.JWT_REFRESH_SECRET as Secret,
         envVars.JWT_REFRESH_EXPIRES as string,
@@ -50,23 +51,23 @@ const refreshToken = async (token: string) => {
         throw new Error("You are not authorized!")
     }
 
-    const userData = await prisma.user.findUniqueOrThrow({
+    const personData = await prisma.person.findUniqueOrThrow({
         where: {
             email: decodedData.email
         }
     });
 
     const accessToken = jwtHelper.generateToken({
-        email: userData.email,
-        role: userData.role
+        email: personData.email,
+        role: personData.role
     },
         envVars.JWT_ACCESS_SECRET as Secret,
         envVars.JWT_ACCESS_EXPIRES as string
     );
 
     const refreshToken = jwtHelper.generateToken({
-        email: userData.email,
-        role: userData.role
+        email: personData.email,
+        role: personData.role
     },
         envVars.JWT_REFRESH_SECRET as Secret,
         envVars.JWT_REFRESH_EXPIRES as string,
@@ -80,14 +81,14 @@ const refreshToken = async (token: string) => {
 };
 
 const changePassword = async (user: any, payload: any) => {
-    const userData = await prisma.user.findUniqueOrThrow({
+    const personData = await prisma.person.findUniqueOrThrow({
         where: {
             email: user.email,
             isDeleted: false
         }
     });
 
-    const isCorrectPassword: boolean = await bcrypt.compare(payload.oldPassword, userData.password);
+    const isCorrectPassword: boolean = await bcrypt.compare(payload.oldPassword, personData.password);
 
     if (!isCorrectPassword) {
         throw new Error("Password incorrect!")
@@ -95,9 +96,9 @@ const changePassword = async (user: any, payload: any) => {
 
     const hashedPassword: string = await bcrypt.hash(payload.newPassword, Number(envVars.BCRYPT_SALT_ROUND));
 
-    await prisma.user.update({
+    await prisma.person.update({
         where: {
-            email: userData.email
+            email: personData.email
         },
         data: {
             password: hashedPassword
@@ -176,28 +177,24 @@ const changePassword = async (user: any, payload: any) => {
 
 const getMe = async (user: any) => {
     const accessToken = user.accessToken;
-    const decodedData = jwtHelper.verifyToken(
-        accessToken,
-        envVars.JWT_ACCESS_SECRET as Secret
-    );
+    const decodedData = jwtHelper.verifyToken(accessToken, envVars.JWT_ACCESS_SECRET as Secret);
 
-    // Determine which model to query based on role
-    let userData;
-    const email = decodedData.email;
-    const role = decodedData.role; // Assuming role is in the token
-
-    switch (role) {
-        case 'ADMIN':
-            userData = await prisma.admin.findUniqueOrThrow({
-                where: {
-                    email: email,
-                    isDeleted: false
-                },
+    const personData = await prisma.person.findUniqueOrThrow({
+        where: {
+            email: decodedData.email,
+            isDeleted: false
+        },
+        select: {
+            id: true,
+            email: true,
+            role: true,
+            createdAt: true,
+            updatedAt: true,
+            admin: {
                 select: {
                     id: true,
                     name: true,
                     email: true,
-                    role: true,
                     profilePhoto: true,
                     contactNumber: true,
                     address: true,
@@ -206,22 +203,13 @@ const getMe = async (user: any) => {
                     isDeleted: true,
                     createdAt: true,
                     updatedAt: true,
-                    // Include admin-specific relations if any
                 }
-            });
-            break;
-
-        case 'HOST':
-            userData = await prisma.host.findUniqueOrThrow({
-                where: {
-                    email: email,
-                    isDeleted: false
-                },
+            },
+            host: {
                 select: {
                     id: true,
                     name: true,
                     email: true,
-                    role: true,
                     profilePhoto: true,
                     contactNumber: true,
                     address: true,
@@ -254,21 +242,12 @@ const getMe = async (user: any) => {
                     //     }
                     // }
                 }
-            });
-            break;
-
-        case 'USER':
-        default:
-            userData = await prisma.user.findUniqueOrThrow({
-                where: {
-                    email: email,
-                    isDeleted: false
-                },
+            },
+            user: {
                 select: {
                     id: true,
                     name: true,
                     email: true,
-                    role: true,
                     profilePhoto: true,
                     contactNumber: true,
                     address: true,
@@ -324,20 +303,16 @@ const getMe = async (user: any) => {
                     //     }
                     // }
                 }
-            });
-            break;
-    }
+            }
+        }
+    });
 
-    return {
-        success: true,
-        message: 'User profile retrieved successfully',
-        data: userData
-    };
-};
+    return personData;
+}
 
 
 export const AuthServices = {
-    loginUser,
+    loginPerson,
     refreshToken,
     changePassword,
     getMe
