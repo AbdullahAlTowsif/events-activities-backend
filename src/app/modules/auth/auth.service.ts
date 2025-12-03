@@ -21,6 +21,7 @@ const loginPerson = async (payload: {
         throw new Error("Password incorrect!")
     }
     const accessToken = jwtHelper.generateToken({
+        // id: personData.id,
         email: personData.email,
         role: personData.role
     },
@@ -29,6 +30,7 @@ const loginPerson = async (payload: {
     );
 
     const refreshToken = jwtHelper.generateToken({
+        // id: personData.id,
         email: personData.email,
         role: personData.role
     },
@@ -59,6 +61,7 @@ const refreshToken = async (token: string) => {
     });
 
     const accessToken = jwtHelper.generateToken({
+        // id: personData.id,
         email: personData.email,
         role: personData.role
     },
@@ -67,6 +70,7 @@ const refreshToken = async (token: string) => {
     );
 
     const refreshToken = jwtHelper.generateToken({
+        // id: personData.id,
         email: personData.email,
         role: personData.role
     },

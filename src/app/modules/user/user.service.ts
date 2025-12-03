@@ -8,6 +8,7 @@ import { IJWTPayload } from "../../interfaces/common";
 import { IPaginationOptions } from "../../interfaces/pagination";
 import { paginationHelper } from "../../helper/paginationHelper";
 import { personSearchableFields } from "./user.constants";
+import { JwtPayload } from "jsonwebtoken";
 
 const createAdmin = async (req: Request): Promise<Admin> => {
 
@@ -235,7 +236,7 @@ const getAllFromDB = async (params: any, options: IPaginationOptions) => {
 };
 
 
-const getMyProfile = async (user: IJWTPayload) => {
+const getMyProfile = async (user: JwtPayload) => {
     const personInfo = await prisma.user.findUniqueOrThrow({
         where: {
             email: user?.email,
@@ -312,7 +313,7 @@ const getMyProfile = async (user: IJWTPayload) => {
 };
 
 
-const updateMyProfie = async (user: IJWTPayload, req: Request) => {
+const updateMyProfie = async (user: JwtPayload, req: Request) => {
     const personInfo = await prisma.person.findUniqueOrThrow({
         where: {
             email: user?.email,

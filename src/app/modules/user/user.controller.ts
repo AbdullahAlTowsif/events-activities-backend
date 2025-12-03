@@ -6,6 +6,7 @@ import sendResponse from "../../utils/sendResponse";
 import { IJWTPayload } from "../../interfaces/common";
 import pick from "../../helper/pick";
 import { personFilterableFields } from "./user.constants";
+import { JwtPayload } from "jsonwebtoken";
 
 const createUser = catchAsync(async (req: Request, res: Response) => {
     const result = await UserService.createUser(req);
@@ -59,11 +60,11 @@ const getAllFromDB = catchAsync(async (req: Request, res: Response) => {
 
 
 
-const getMyProfile = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
+const getMyProfile = catchAsync(async (req: Request & { user?: JwtPayload }, res: Response) => {
 
     const user = req.user;
 
-    const result = await UserService.getMyProfile(user as IJWTPayload);
+    const result = await UserService.getMyProfile(user as JwtPayload);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -74,11 +75,11 @@ const getMyProfile = catchAsync(async (req: Request & { user?: IJWTPayload }, re
 });
 
 
-const updateMyProfie = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
+const updateMyProfie = catchAsync(async (req: Request & { user?: JwtPayload }, res: Response) => {
 
     const user = req.user;
 
-    const result = await UserService.updateMyProfie(user as IJWTPayload, req);
+    const result = await UserService.updateMyProfie(user as JwtPayload, req);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,

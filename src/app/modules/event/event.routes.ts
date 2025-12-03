@@ -1,0 +1,44 @@
+import { NextFunction, Request, Response, Router } from "express";
+import auth from "../../middlewares/auth";
+import { eventValidation } from "./event.validation";
+import { EventController } from "./event.controller";
+import { UserRole } from "@prisma/client";
+import { fileUploader } from "../../helper/fileUploader";
+
+const router = Router();
+
+router.post(
+    "/create-event",
+    auth(UserRole.HOST),
+    fileUploader.upload.single('file'),
+    (req: Request, res: Response, next: NextFunction) => {
+        console.log(req.body.data);
+        req.body = eventValidation.createEventValidationSchema.parse(JSON.parse(req.body.data))
+        console.log("req.body from routes ---->",req.body);
+        return EventController.createEvent(req, res, next)
+    }
+);
+
+// router.post(
+//     "/create-event",
+//     auth(UserRole.HOST),
+//     fileUploader.upload.single("file"),
+//     (req: Request, res: Response, next: NextFunction) => {
+
+//         const raw = JSON.parse(req.body.data);
+
+//         // Fix naming mismatch and inject file image
+//         const fixedBody = {
+//             ...raw,
+//             images: req.file ? [req.file.filename] : [], // <-- inject uploaded image
+//         };
+
+//         // Now validate using Zod
+//         req.body = eventValidation.createEventValidationSchema.parse(fixedBody);
+
+//         return EventController.createEvent(req, res, next);
+//     }
+// );
+
+
+export const EventRoutes = router;
