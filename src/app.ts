@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser"
 import { envVars } from './app/config/env';
 import notFound from './app/middlewares/notFound';
 import router from './app/routes';
+import { PaymentController } from './app/modules/payment/payment.controller';
 
 const app: Application = express();
 
@@ -12,10 +13,15 @@ app.use(cors({
     origin: 'http://localhost:3000',
     credentials: true
 }));
-
+app.post(
+    "/api/payment/stripe/webhook",
+    express.raw({ type: "application/json" }),
+    PaymentController.stripeWebhook
+);
 //parser
 app.use(express.json());
 app.use(cookieParser());
+
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
