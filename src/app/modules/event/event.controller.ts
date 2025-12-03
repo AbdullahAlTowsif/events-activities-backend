@@ -91,6 +91,20 @@ const joinEvent = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const leaveEvent = catchAsync(async (req, res) => {
+    const eventId = req.params.id;
+    const userEmail = req.user?.email;
+
+    const result = await EventService.leaveEvent(eventId as string, userEmail);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Event left successfully",
+        data: result,
+    });
+});
+
 
 
 export const EventController = {
@@ -100,4 +114,5 @@ export const EventController = {
     updateEventById,
     deleteEvent,
     joinEvent,
+    leaveEvent,
 };

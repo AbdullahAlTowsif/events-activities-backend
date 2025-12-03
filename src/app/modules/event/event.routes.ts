@@ -34,12 +34,17 @@ router.patch(
 
 
 router.delete(
-  "/delete/:id",
-  auth(UserRole.ADMIN, UserRole.HOST),
-  EventController.deleteEvent
+    "/delete/:id",
+    auth(UserRole.ADMIN, UserRole.HOST),
+    EventController.deleteEvent
 );
 
 router.post("/:id/join", auth(UserRole.USER), EventController.joinEvent);
+router.post(
+    "/:id/leave",
+    auth(UserRole.USER),
+    EventController.leaveEvent
+);
 
 
 

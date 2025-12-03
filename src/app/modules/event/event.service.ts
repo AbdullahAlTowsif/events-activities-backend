@@ -294,6 +294,57 @@ const joinEvent = async (eventId: string, userEmail: string) => {
 };
 
 
+const leaveEvent = async (eventId: string, userEmail: string) => {
+    return await prisma.$transaction(async (tx) => {
+        // 1. Check event exists
+        const event = await tx.event.findUnique({
+            where: { id: eventId },
+        });
+
+        if (!event) {
+            throw new ApiError(httpStatus.NOT_FOUND, "Event not found");
+        }
+
+        // 2. Check participant exists
+        const participant = await tx.participant.findFirst({
+            where: {
+                eventId,
+                userEmail,
+            },
+        });
+
+        if (!participant) {
+            throw new ApiError(
+                httpStatus.BAD_REQUEST,
+                "You are not a participant of this event"
+            );
+        }
+
+        // ⚠️ OPTIONAL RULE:
+        // If event already started (DateTime < now), prevent leaving
+        if (event.dateTime < new Date()) {
+            throw new ApiError(
+                httpStatus.BAD_REQUEST,
+                "You cannot leave an event that has already started"
+            );
+        }
+
+        // 3. Delete participant record
+        await tx.participant.delete({
+            where: { id: participant.id },
+        });
+
+        // ⚠️ If paid = true, later implement refund
+        // For now return info
+        return {
+            eventId,
+            userEmail,
+            refunded: participant.paid ? true : false,
+        };
+    });
+};
+
+
 
 export const EventService = {
     createEvent,
@@ -302,4 +353,5 @@ export const EventService = {
     updateEventById,
     deleteEvent,
     joinEvent,
+    leaveEvent
 };
