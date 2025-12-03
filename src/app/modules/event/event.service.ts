@@ -128,7 +128,31 @@ const getAllEvent = async (params: any, options: IPaginationOptions) => {
     };
 };
 
+
+const getEventById = async (id: string): Promise<Event | null> => {
+    const result = await prisma.event.findUnique({
+        where: {
+            id,
+        },
+        include: {
+            host: true,
+            participants: {
+                include: {
+                    user: true
+                }
+            },
+            payments: {
+                include: {
+                    user: true
+                }
+            },
+        },
+    });
+    return result;
+};
+
 export const EventService = {
     createEvent,
-    getAllEvent
+    getAllEvent,
+    getEventById
 };

@@ -24,5 +24,7 @@ router.get(
     EventController.getAllEvent
 );
 
+router.get('/:id', EventController.getEventById);
+
 
 export const EventRoutes = router;

@@ -37,7 +37,20 @@ const getAllEvent = catchAsync(async (req: Request, res: Response) => {
 });
 
 
+const getEventById = catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const result = await EventService.getEventById(id as string);
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Evenet retrieved successfully',
+        data: result,
+    });
+});
+
+
 export const EventController = {
     createEvent,
-    getAllEvent
+    getAllEvent,
+    getEventById
 };
