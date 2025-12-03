@@ -14,12 +14,15 @@ router.post(
     (req: Request, res: Response, next: NextFunction) => {
         console.log(req.body.data);
         req.body = eventValidation.createEventValidationSchema.parse(JSON.parse(req.body.data))
-        console.log("req.body from routes ---->",req.body);
+        // console.log("req.body from routes ---->", req.body);
         return EventController.createEvent(req, res, next)
     }
 );
 
-
+router.get(
+    '/events',
+    EventController.getAllEvent
+);
 
 
 export const EventRoutes = router;

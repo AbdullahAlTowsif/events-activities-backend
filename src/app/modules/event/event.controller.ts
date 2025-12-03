@@ -3,6 +3,8 @@ import sendResponse from "../../utils/sendResponse";
 import httpStatus from "http-status-codes"
 import { EventService } from "./event.service";
 import { Request, Response } from "express";
+import pick from "../../helper/pick";
+import { eventFilterableFields } from "./event.constant";
 
 const createEvent = catchAsync(async (req: Request, res: Response) => {
     const hostEmail = req.user?.email;
@@ -19,4 +21,23 @@ const createEvent = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-export const EventController = { createEvent };
+const getAllEvent = catchAsync(async (req: Request, res: Response) => {
+    const filters = pick(req.query, eventFilterableFields)
+    const options = pick(req.query, ["page", "limit", "sortBy", "sortOrder"])
+    // const {page, limit, searchTerm, sortBy, sortOrder, role, status} = req.query;
+    // const result = await UserService.getAllFromDB({page: Number(page), limit: Number(limit), searchTerm, sortBy, sortOrder, role, status});
+    const result = await EventService.getAllEvent(filters, options);
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "All Events retrieved successfully",
+        meta: result.meta,
+        data: result.data
+    })
+});
+
+
+export const EventController = {
+    createEvent,
+    getAllEvent
+};

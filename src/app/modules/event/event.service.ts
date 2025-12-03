@@ -1,7 +1,10 @@
-import { Event } from "@prisma/client";
+import { Event, Prisma } from "@prisma/client";
 import { fileUploader } from "../../helper/fileUploader";
 import { prisma } from "../../utils/prisma";
 import { Request } from "express";
+import { IPaginationOptions } from "../../interfaces/pagination";
+import { paginationHelper } from "../../helper/paginationHelper";
+import { eventSearchableFields } from "./event.constant";
 
 const createEvent = async (hostEmail: string, req: Request): Promise<Event> => {
     const isEventExists = await prisma.event.findFirst({
@@ -24,8 +27,8 @@ const createEvent = async (hostEmail: string, req: Request): Promise<Event> => {
         images = [uploadToCloudinary?.secure_url];
         console.log(req.body.images);
     }
-    console.log("file ---->", file);
-    console.log("hostId --->", hostEmail);
+    // console.log("file ---->", file);
+    // console.log("hostId --->", hostEmail);
 
     const eventData = {
         title: req.body.title,
@@ -50,4 +53,82 @@ const createEvent = async (hostEmail: string, req: Request): Promise<Event> => {
     return result;
 };
 
-export const EventService = { createEvent };
+
+const getAllEvent = async (params: any, options: IPaginationOptions) => {
+    const { page, limit, skip } = paginationHelper.calculatePagination(options);
+    const { searchTerm, ...filterData } = params;
+
+    const andConditions: Prisma.EventWhereInput[] = [];
+
+    if (params.searchTerm) {
+        andConditions.push({
+            OR: eventSearchableFields.map(field => ({
+                [field]: {
+                    contains: params.searchTerm,
+                    mode: 'insensitive'
+                }
+            }))
+        })
+    };
+
+    if (Object.keys(filterData).length > 0) {
+        andConditions.push({
+            AND: Object.keys(filterData).map(key => ({
+                [key]: {
+                    equals: (filterData as any)[key]
+                }
+            }))
+        })
+    };
+
+    const whereConditions: Prisma.EventWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
+
+    const result = await prisma.event.findMany({
+        where: whereConditions,
+        skip,
+        take: limit,
+        orderBy: options.sortBy && options.sortOrder ? {
+            [options.sortBy]: options.sortOrder
+        } : {
+            createdAt: 'desc'
+        },
+        select: {
+            id: true,
+            hostEmail: true,
+            title: true,
+            type: true,
+            description: true,
+            location: true,
+            dateTime: true,
+            minParticipants: true,
+            maxParticipants: true,
+            joiningFee: true,
+            currency: true,
+            status: true,
+            images: true,
+            host: true,
+            payments: true,
+            participants: true,
+            createdAt: true,
+            updatedAt: true,
+        }
+    });
+
+    const total = await prisma.event.count({
+        where: whereConditions
+    });
+
+    return {
+        meta: {
+            page,
+            limit,
+            total
+        },
+        data: result
+    };
+};
+
+export const EventService = {
+    createEvent,
+    getAllEvent
+};
