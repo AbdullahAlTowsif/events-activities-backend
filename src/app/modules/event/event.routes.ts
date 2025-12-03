@@ -28,8 +28,15 @@ router.get('/:id', EventController.getEventById);
 
 router.patch(
     '/update/:id',
-    auth(UserRole.ADMIN, UserRole.HOST),
+    auth(UserRole.HOST),
     EventController.updateEventById
+);
+
+
+router.delete(
+  "/delete/:id",
+  auth(UserRole.ADMIN, UserRole.HOST),
+  EventController.deleteEvent
 );
 
 

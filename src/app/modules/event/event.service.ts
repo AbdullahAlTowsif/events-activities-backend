@@ -1,10 +1,13 @@
-import { Event, Prisma } from "@prisma/client";
+import { Event, Prisma, UserRole } from "@prisma/client";
 import { fileUploader } from "../../helper/fileUploader";
 import { prisma } from "../../utils/prisma";
 import { Request } from "express";
 import { IPaginationOptions } from "../../interfaces/pagination";
 import { paginationHelper } from "../../helper/paginationHelper";
 import { eventSearchableFields } from "./event.constant";
+import { JwtPayload } from "jsonwebtoken";
+import httpStatus from "http-status-codes";
+import ApiError from "../../errors/ApiError";
 
 const createEvent = async (hostEmail: string, req: Request): Promise<Event> => {
     const isEventExists = await prisma.event.findFirst({
@@ -169,9 +172,53 @@ const updateEventById = async (id: string, data: Partial<Event>): Promise<Event>
     return result;
 };
 
+
+const deleteEvent = async (eventId: string, user: JwtPayload) => {
+    // Check if event exists
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        include: { host: true },
+    });
+
+    if (!event) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Event not found");
+    }
+
+    // Only host or admin can delete
+    const isOwner = event.hostEmail === user.email;
+    const isAdmin = user.role === UserRole.ADMIN;
+
+    if (!isOwner && !isAdmin) {
+        throw new ApiError(httpStatus.FORBIDDEN, "Not allowed to delete this event");
+    }
+
+    // Transaction - rollback safe
+    const result = await prisma.$transaction(async (tx) => {
+        // Delete participants
+        await tx.participant.deleteMany({
+            where: { eventId },
+        });
+
+        // Delete payments
+        await tx.payment.deleteMany({
+            where: { eventId },
+        });
+
+        // Delete event
+        await tx.event.delete({
+            where: { id: eventId },
+        });
+    });
+
+    return result;
+}
+
+
+
 export const EventService = {
     createEvent,
     getAllEvent,
     getEventById,
-    updateEventById
+    updateEventById,
+    deleteEvent
 };

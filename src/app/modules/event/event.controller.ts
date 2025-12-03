@@ -59,6 +59,21 @@ const updateEventById = catchAsync(async (req: Request, res: Response) => {
         message: "Event data updated!",
         data: result
     })
+});
+
+
+const deleteEvent = catchAsync(async (req: Request & { user?: any }, res: Response) => {
+    const eventId = req.params.id;
+    const user = req.user;
+
+    const result = await EventService.deleteEvent(eventId as string, user);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Event deleted successfully!",
+        data: result,
+    });
 })
 
 
@@ -66,5 +81,6 @@ export const EventController = {
     createEvent,
     getAllEvent,
     getEventById,
-    updateEventById
+    updateEventById,
+    deleteEvent
 };
