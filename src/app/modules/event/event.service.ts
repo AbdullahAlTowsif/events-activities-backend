@@ -345,6 +345,50 @@ const leaveEvent = async (eventId: string, userEmail: string) => {
 };
 
 
+const getParticipants = async (
+    eventId: string,
+    requesterEmail: string,
+    requesterRole: string
+) => {
+    // 1. Verify event exists
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+    });
+
+    if (!event) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Event not found");
+    }
+
+    // 2. Authorization: must be HOST of event OR ADMIN
+    if (requesterRole !== UserRole.ADMIN && event.hostEmail !== requesterEmail) {
+        throw new ApiError(
+            httpStatus.FORBIDDEN,
+            "You are not authorized to view participants"
+        );
+    }
+
+    // 3. Fetch participants with user details
+    const participants = await prisma.participant.findMany({
+        where: { eventId },
+        include: {
+            user: {
+                select: {
+                    name: true,
+                    email: true,
+                    profilePhoto: true,
+                    contactNumber: true,
+                    address: true,
+                    gender: true,
+                    interests: true
+                },
+            },
+        },
+        orderBy: { createdAt: "desc" },
+    });
+
+    return participants;
+};
+
 
 export const EventService = {
     createEvent,
@@ -353,5 +397,6 @@ export const EventService = {
     updateEventById,
     deleteEvent,
     joinEvent,
-    leaveEvent
+    leaveEvent,
+    getParticipants
 };

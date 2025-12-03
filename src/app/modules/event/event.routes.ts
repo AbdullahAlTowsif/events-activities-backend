@@ -46,6 +46,11 @@ router.post(
     EventController.leaveEvent
 );
 
+router.get(
+    "/:id/participants",
+    auth(UserRole.ADMIN, UserRole.HOST),
+    EventController.getParticipants
+);
 
 
 export const EventRoutes = router;

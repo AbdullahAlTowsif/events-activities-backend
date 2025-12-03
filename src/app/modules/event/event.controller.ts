@@ -106,6 +106,25 @@ const leaveEvent = catchAsync(async (req, res) => {
 });
 
 
+const getParticipants = catchAsync(async (req, res) => {
+    const eventId = req.params.id;
+    const requesterEmail = req.user?.email;
+    const requesterRole = req.user?.role;
+
+    const result = await EventService.getParticipants(
+        eventId as string,
+        requesterEmail,
+        requesterRole
+    );
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Participants fetched successfully",
+        data: result,
+    });
+});
+
 
 export const EventController = {
     createEvent,
@@ -115,4 +134,5 @@ export const EventController = {
     deleteEvent,
     joinEvent,
     leaveEvent,
+    getParticipants
 };
