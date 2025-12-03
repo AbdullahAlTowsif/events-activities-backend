@@ -390,6 +390,83 @@ const getParticipants = async (
 };
 
 
+const createReview = async (
+    eventId: string,
+    reviewerEmail: string,
+    payload: { rating: number; comment?: string }
+) => {
+    // 1. Fetch event with host
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        include: {
+            host: true, // we need hostEmail
+        },
+    });
+
+    if (!event) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Event not found");
+    }
+
+    const hostEmail = event.hostEmail;
+
+    // 2. Ensure user participated in the event
+    const participation = await prisma.participant.findFirst({
+        where: {
+            eventId,
+            userEmail: reviewerEmail,
+        },
+    });
+
+    if (!participation) {
+        throw new ApiError(
+            httpStatus.FORBIDDEN,
+            "You can only review events you have attended"
+        );
+    }
+
+    // 3. Prevent duplicate review for same event
+    const alreadyReviewed = await prisma.review.findFirst({
+        where: {
+            userEmail: reviewerEmail,
+            hostEmail,
+            // If reviewing per event, use relation with event-review table
+            // But here host review is per host, so allow multiple events review
+        },
+    });
+
+    // user can review only one time
+    if (alreadyReviewed) {
+        throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "You have already reviewed this host"
+        );
+    }
+
+    // 4. Create review
+    const review = await prisma.review.create({
+        data: {
+            userEmail: reviewerEmail,
+            hostEmail,
+            rating: payload.rating,
+            comment: payload.comment || "💬💬",
+        },
+    });
+
+    // 5. Return review + event details (as requested)
+    return {
+        event: {
+            id: event.id,
+            title: event.title,
+            dateTime: event.dateTime,
+            location: event.location,
+            hostEmail: event.hostEmail,
+            joiningFee: event.joiningFee
+        },
+        review,
+    };
+};
+
+
 export const EventService = {
     createEvent,
     getAllEvent,
@@ -398,5 +475,6 @@ export const EventService = {
     deleteEvent,
     joinEvent,
     leaveEvent,
-    getParticipants
+    getParticipants,
+    createReview
 };

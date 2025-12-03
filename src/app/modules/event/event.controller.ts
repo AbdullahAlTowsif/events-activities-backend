@@ -126,6 +126,21 @@ const getParticipants = catchAsync(async (req, res) => {
 });
 
 
+const createReview = catchAsync(async (req, res) => {
+  const eventId = req.params.id;
+  const reviewerEmail = req.user?.email;
+
+  const result = await EventService.createReview(eventId as string, reviewerEmail, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Review posted successfully",
+    data: result,
+  });
+});
+
+
 export const EventController = {
     createEvent,
     getAllEvent,
@@ -134,5 +149,6 @@ export const EventController = {
     deleteEvent,
     joinEvent,
     leaveEvent,
-    getParticipants
+    getParticipants,
+    createReview
 };

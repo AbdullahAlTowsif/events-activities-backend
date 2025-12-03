@@ -53,4 +53,11 @@ router.get(
 );
 
 
+router.post(
+    "/:id/review",
+    auth(UserRole.USER, UserRole.ADMIN),
+    EventController.createReview
+);
+
+
 export const EventRoutes = router;
