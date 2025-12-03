@@ -151,8 +151,27 @@ const getEventById = async (id: string): Promise<Event | null> => {
     return result;
 };
 
+
+const updateEventById = async (id: string, data: Partial<Event>): Promise<Event> => {
+    await prisma.event.findUniqueOrThrow({
+        where: {
+            id,
+        }
+    });
+
+    const result = await prisma.event.update({
+        where: {
+            id
+        },
+        data
+    });
+
+    return result;
+};
+
 export const EventService = {
     createEvent,
     getAllEvent,
-    getEventById
+    getEventById,
+    updateEventById
 };

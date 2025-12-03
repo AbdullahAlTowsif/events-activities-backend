@@ -26,5 +26,11 @@ router.get(
 
 router.get('/:id', EventController.getEventById);
 
+router.patch(
+    '/update/:id',
+    auth(UserRole.ADMIN, UserRole.HOST),
+    EventController.updateEventById
+);
+
 
 export const EventRoutes = router;

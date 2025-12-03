@@ -49,8 +49,22 @@ const getEventById = catchAsync(async (req: Request, res: Response) => {
 });
 
 
+const updateEventById = catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const result = await EventService.updateEventById(id as string, req.body);
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Event data updated!",
+        data: result
+    })
+})
+
+
 export const EventController = {
     createEvent,
     getAllEvent,
-    getEventById
+    getEventById,
+    updateEventById
 };
