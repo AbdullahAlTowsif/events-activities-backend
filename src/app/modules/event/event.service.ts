@@ -1,4 +1,4 @@
-import { Event, Prisma, UserRole } from "@prisma/client";
+import { Event, EventStatus, JoinStatus, Prisma, UserRole } from "@prisma/client";
 import { fileUploader } from "../../helper/fileUploader";
 import { prisma } from "../../utils/prisma";
 import { Request } from "express";
@@ -214,11 +214,92 @@ const deleteEvent = async (eventId: string, user: JwtPayload) => {
 }
 
 
+const joinEvent = async (eventId: string, userEmail: string) => {
+    return await prisma.$transaction(async (tx) => {
+        // 1. Get event with participants count
+        const event = await tx.event.findUnique({
+            where: { id: eventId },
+            include: { participants: true }
+        });
+
+        if (!event) {
+            throw new ApiError(httpStatus.NOT_FOUND, "Event not found");
+        }
+
+        // 2. Event must be open
+        if (event.status !== EventStatus.OPEN) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Event is not open for joining");
+        }
+
+        // 3. Host cannot join own event
+        if (event.hostEmail === undefined) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Host email missing in event");
+        }
+
+        const host = await tx.host.findUnique({
+            where: { email: event.hostEmail }
+        });
+
+        if (host && host.id === userEmail) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "You cannot join your own event");
+        }
+
+        // 4. Prevent duplicate join
+        const alreadyJoined = await tx.participant.findFirst({
+            where: {
+                userEmail,
+                eventId
+            }
+        });
+
+        if (alreadyJoined) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "You have already joined this event");
+        }
+
+        // 5. Max participants check
+        if (
+            event.maxParticipants &&
+            event.participants.length >= event.maxParticipants
+        ) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Event is full");
+        }
+
+        // 6. Create participant
+        const participant = await tx.participant.create({
+            data: {
+                userEmail,
+                eventId,
+                status: JoinStatus.ACCEPTED,
+                paid: event.joiningFee === 0
+            }
+        });
+
+        let payment = null;
+
+        // 7. Create payment if fee exists
+        if (event.joiningFee > 0) {
+            payment = await tx.payment.create({
+                data: {
+                    userEmail,
+                    eventId,
+                    amount: event.joiningFee,
+                    currency: event.currency,
+                    status: "PENDING"
+                }
+            });
+        }
+
+        return { participant, payment };
+    });
+};
+
+
 
 export const EventService = {
     createEvent,
     getAllEvent,
     getEventById,
     updateEventById,
-    deleteEvent
+    deleteEvent,
+    joinEvent,
 };

@@ -39,5 +39,8 @@ router.delete(
   EventController.deleteEvent
 );
 
+router.post("/:id/join", auth(UserRole.USER), EventController.joinEvent);
+
+
 
 export const EventRoutes = router;

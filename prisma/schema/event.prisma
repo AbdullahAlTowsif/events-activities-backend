@@ -24,8 +24,8 @@ model Participant {
   id        String     @id @default(uuid())
   event     Event      @relation(fields: [eventId], references: [id])
   eventId   String
-  user      User       @relation(fields: [userId], references: [id])
-  userId    String
+  user      User       @relation(fields: [userEmail], references: [email])
+  userEmail    String
   status    JoinStatus @default(ACCEPTED)
   paid      Boolean    @default(false)
   createdAt DateTime   @default(now())
