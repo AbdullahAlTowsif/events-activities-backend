@@ -23,6 +23,7 @@
     "@types/dotenv": "^6.1.1",
     "@types/express": "^5.0.5",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
     "@types/node": "^24.10.1",
     "eslint": "^9.39.1",
     "prisma": "^6.19.0",
@@ -33,7 +34,6 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.0.1",
     "@prisma/client": "^6.19.0",
-    "@types/multer": "^2.0.0",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.8.0",
