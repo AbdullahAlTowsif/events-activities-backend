@@ -28,7 +28,7 @@ router.get('/:id', EventController.getEventById);
 
 router.patch(
     '/update/:id',
-    auth(UserRole.HOST),
+    auth(UserRole.HOST, UserRole.ADMIN),
     EventController.updateEventById
 );
 
