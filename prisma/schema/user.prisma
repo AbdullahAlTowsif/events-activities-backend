@@ -99,8 +99,8 @@ model HostApplication {
     feedback      String? // Admin feedback/reason for rejection
     createdAt     DateTime              @default(now())
     updatedAt     DateTime              @updatedAt
-    person        Person?               @relation(fields: [personId], references: [id])
-    personId      String?
+    person        Person?               @relation(fields: [personEmail], references: [email])
+    personEmail      String?
 
     @@map("host_applications")
 }
