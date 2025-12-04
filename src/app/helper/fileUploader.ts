@@ -3,9 +3,10 @@ import path from 'path';
 import { v2 as cloudinary } from 'cloudinary';
 import fs from "fs"
 import { envVars } from '../config/env';
+import { Request } from 'express';
 
 const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
+    destination: function (_req: Request, _file: Express.Multer.File, cb) {
         const uploadPath = path.join(process.cwd(), 'uploads');
         console.log('Upload path:', uploadPath);
         console.log('Directory exists:', fs.existsSync(uploadPath));
@@ -17,7 +18,7 @@ const storage = multer.diskStorage({
 
         cb(null, uploadPath);
     },
-    filename: function (req, file, cb) {
+    filename: function (_req: Request, file: Express.Multer.File, cb) {
         console.log('Uploading file:', file.originalname);
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const fileExt = path.extname(file.originalname);

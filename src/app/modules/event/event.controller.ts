@@ -92,7 +92,7 @@ const joinEvent = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-const leaveEvent = catchAsync(async (req, res) => {
+const leaveEvent = catchAsync(async (req: Request, res: Response) => {
     const eventId = req.params.id;
     const userEmail = req.user?.email;
 
@@ -107,7 +107,7 @@ const leaveEvent = catchAsync(async (req, res) => {
 });
 
 
-const getParticipants = catchAsync(async (req, res) => {
+const getParticipants = catchAsync(async (req: Request, res: Response) => {
     const eventId = req.params.id;
     const requesterEmail = req.user?.email;
     const requesterRole = req.user?.role;
@@ -127,7 +127,7 @@ const getParticipants = catchAsync(async (req, res) => {
 });
 
 
-const createReview = catchAsync(async (req, res) => {
+const createReview = catchAsync(async (req: Request, res: Response) => {
   const eventId = req.params.id;
   const reviewerEmail = req.user?.email;
 
