@@ -1,0 +1,7 @@
+export interface IAdminFilterRequest {
+    name?: string;
+    email?: string;
+    contactNumber?: string;
+    gender?: string;
+    searchTerm?: string;
+}
