@@ -20,7 +20,7 @@ router.get(
 
 // Admin routes
 router.get(
-    '/',
+    '/admin/applications',
     auth(UserRole.ADMIN),
     HostApplicationController.getAllApplications
 );

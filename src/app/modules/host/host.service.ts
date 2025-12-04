@@ -85,8 +85,8 @@ const getAllApplications = async () => {
 };
 
 const updateApplicationStatus = async (
-    applicationId: string, 
-    adminEmail: string, 
+    applicationId: string,
+    adminEmail: string,
     data: {
         status: HostApplicationStatus;
         feedback?: string;
@@ -95,7 +95,9 @@ const updateApplicationStatus = async (
     return await prisma.$transaction(async (tx) => {
         const application = await tx.hostApplication.findUnique({
             where: { id: applicationId },
-            include: { user: true }
+            include: {
+                user: true
+            }
         });
 
         if (!application) {
@@ -118,36 +120,55 @@ const updateApplicationStatus = async (
         });
 
         if (data.status === HostApplicationStatus.APPROVED) {
-            // Create host profile
-            await tx.host.create({
-                data: {
-                    email: application.email,
-                    name: application.name,
-                    password: application.user.password, // Use existing password
-                    role: UserRole.HOST,
-                    profilePhoto: application.user.profilePhoto || "",
-                    contactNumber: application.contactNumber,
-                    address: application.address,
-                    gender: application.gender,
-                    interests: application.interests,
-                }
+            // OPTION 1: Delete the HostApplication record first
+            await tx.hostApplication.delete({
+                where: { id: applicationId }
             });
 
-            // Update user role
-            await tx.user.update({
-                where: { id: application.userEmail },
-                data: {
-                    role: UserRole.HOST
-                }
+            // OPTION 2: Or delete all applications for this user
+            // await tx.hostApplication.deleteMany({
+            //     where: { userEmail: application.email }
+            // });
+
+            // Then delete the user record
+            await tx.user.delete({
+                where: { email: application.email }
             });
 
-            // Update person role
+            // Check if host already exists
+            const existingHost = await tx.host.findUnique({
+                where: { email: application.email }
+            });
+
+            if (!existingHost) {
+                // Create host record
+                await tx.host.create({
+                    data: {
+                        email: application.email,
+                        name: application.name,
+                        password: application.user.password,
+                        role: UserRole.HOST,
+                        profilePhoto: application.user.profilePhoto || "",
+                        contactNumber: application.contactNumber,
+                        address: application.address,
+                        gender: application.gender,
+                        interests: application.interests
+                    }
+                });
+            }
+
+            // Update Person role to HOST
             await tx.person.update({
                 where: { email: application.email },
                 data: {
                     role: UserRole.HOST
                 }
             });
+
+            return {
+                message: 'Application approved and user converted to host',
+                // Don't return the application since it was deleted
+            };
         }
 
         return updatedApplication;
