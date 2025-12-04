@@ -1,4 +1,3 @@
-// src/app/modules/host-application/hostApplication.controller.ts
 import { Request, Response } from 'express';
 import httpStatus from 'http-status-codes';
 import sendResponse from '../../utils/sendResponse';

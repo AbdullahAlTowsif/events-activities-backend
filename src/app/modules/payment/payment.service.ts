@@ -1,14 +1,14 @@
 import Stripe from "stripe";
 import { PaymentStatus } from "@prisma/client";
 import { envVars } from "../../config/env";
-import { prisma } from "../../utils/prisma";
 import { stripe } from "../../helper/stripe";
+import prisma from "../../utils/prisma";
 
 type CreatePaymentInput = {
     eventId: string;
     userEmail: string;
-    amount: number; // integer amount in your currency unit (e.g., 500 means 500 BDT)
-    currency?: string; // e.g., "BDT"
+    amount: number;
+    currency?: string;
 };
 
 const createPaymentAndSession = async (input: CreatePaymentInput) => {

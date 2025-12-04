@@ -5,7 +5,7 @@ import { HostApplicationController } from './host.controller';
 
 const router = express.Router();
 
-// User routes
+
 router.post(
     '/apply',
     auth(UserRole.USER),

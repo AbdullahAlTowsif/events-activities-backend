@@ -1,8 +1,9 @@
 /* eslint-disable no-console */
 import { envVars } from "../config/env";
 import bcryptjs from "bcryptjs";
-import { prisma } from "./prisma";
+// import { prisma } from "./prisma";
 import { Gender, UserRole } from "@prisma/client";
+import prisma from "./prisma";
 
 export const seedAdmin = async () => {
     try {

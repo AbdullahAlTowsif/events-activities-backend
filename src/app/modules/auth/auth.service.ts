@@ -1,8 +1,8 @@
 import * as bcrypt from 'bcryptjs';
 import { Secret } from "jsonwebtoken";
-import { prisma } from '../../utils/prisma';
 import { jwtHelper } from '../../middlewares/jwtHelper';
 import { envVars } from '../../config/env';
+import prisma from '../../utils/prisma';
 
 const loginPerson = async (payload: {
     email: string,

@@ -1,5 +1,5 @@
 import { HostApplicationStatus, UserRole } from '@prisma/client';
-import { prisma } from '../../utils/prisma';
+import prisma from '../../utils/prisma';
 
 const applyToBeHost = async (userEmail: string, data: {
     reason?: string;

@@ -1,6 +1,5 @@
 import { Event, EventStatus, JoinStatus, Prisma, UserRole } from "@prisma/client";
 import { fileUploader } from "../../helper/fileUploader";
-import { prisma } from "../../utils/prisma";
 import { Request } from "express";
 import { IPaginationOptions } from "../../interfaces/pagination";
 import { paginationHelper } from "../../helper/paginationHelper";
@@ -8,6 +7,7 @@ import { eventSearchableFields } from "./event.constant";
 import { JwtPayload } from "jsonwebtoken";
 import httpStatus from "http-status-codes";
 import ApiError from "../../errors/ApiError";
+import prisma from "../../utils/prisma";
 
 const createEvent = async (hostEmail: string, req: Request): Promise<Event> => {
     const isEventExists = await prisma.event.findFirst({
