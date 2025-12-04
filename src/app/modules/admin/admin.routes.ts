@@ -51,6 +51,12 @@ router.get(
     AdminController.getAllHosts
 );
 
+router.get(
+    '/persons/all',
+    auth(UserRole.ADMIN),
+    AdminController.getAllPersonsFromDB
+);
+
 // Dashboard routes
 router.get(
     '/dashboard/stats',

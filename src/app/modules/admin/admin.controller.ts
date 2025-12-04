@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { AdminService } from './admin.service';
 import httpStatus from 'http-status-codes';
-import { adminFilterableFields } from './admin.constant';
+import { adminFilterableFields, personFilterableFields } from './admin.constant';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import pick from '../../helper/pick';
@@ -120,6 +120,22 @@ const getAllHosts = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+
+const getAllPersonsFromDB = catchAsync(async (req: Request, res: Response) => {
+    const filters = pick(req.query, personFilterableFields);
+    const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
+    
+    const result = await AdminService.getAllPersonsFromDB(filters, options);
+    
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Persons retrieved successfully',
+        meta: result.meta,
+        data: result.data
+    });
+});
+
 const getDashboardStats = catchAsync(async (req: Request, res: Response) => {
     const result = await AdminService.getDashboardStats();
 
@@ -139,5 +155,6 @@ export const AdminController = {
     softDeletePersonFromDB,
     getAllUsers,
     getAllHosts,
+    getAllPersonsFromDB,
     getDashboardStats
 };

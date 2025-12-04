@@ -498,6 +498,139 @@ const getAllHosts = async (params: any, options: IPaginationOptions) => {
     };
 };
 
+const getAllPersonsFromDB = async (params: any, options: IPaginationOptions) => {
+    const { page, limit, skip } = paginationHelper.calculatePagination(options);
+    const { searchTerm, ...filterData } = params;
+
+    const andConditions: Prisma.PersonWhereInput[] = [];
+
+    // Search only on email (since Person only has email)
+    if (searchTerm) {
+        andConditions.push({
+            email: { contains: searchTerm, mode: 'insensitive' }
+        });
+    }
+
+    // Filter conditions
+    if (filterData.role) {
+        andConditions.push({
+            role: filterData.role
+        });
+        delete filterData.role;
+    }
+
+    // Other filters
+    if (Object.keys(filterData).length > 0) {
+        andConditions.push({
+            AND: Object.keys(filterData).map(key => ({
+                [key]: {
+                    equals: (filterData as any)[key]
+                }
+            }))
+        });
+    }
+
+    // Exclude deleted persons
+    andConditions.push({
+        isDeleted: false
+    });
+
+    const whereConditions: Prisma.PersonWhereInput = { AND: andConditions };
+
+    const result = await prisma.person.findMany({
+        where: whereConditions,
+        skip,
+        take: limit,
+        orderBy: options.sortBy && options.sortOrder ? {
+            [options.sortBy]: options.sortOrder
+        } : {
+            createdAt: 'desc'
+        },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    profilePhoto: true,
+                    contactNumber: true,
+                    address: true,
+                    gender: true,
+                    interests: true,
+                    createdAt: true,
+                    updatedAt: true
+                }
+            },
+            host: {
+                select: {
+                    id: true,
+                    name: true,
+                    profilePhoto: true,
+                    contactNumber: true,
+                    address: true,
+                    gender: true,
+                    interests: true,
+                    createdAt: true,
+                    updatedAt: true
+                }
+            },
+            admin: {
+                select: {
+                    id: true,
+                    name: true,
+                    profilePhoto: true,
+                    contactNumber: true,
+                    address: true,
+                    gender: true,
+                    interests: true,
+                    createdAt: true,
+                    updatedAt: true
+                }
+            }
+        }
+    });
+
+    // Transform data
+    const transformedData = result.map(person => {
+        let profile = null;
+        
+        // Determine which profile to use based on role
+        switch (person.role) {
+            case 'USER':
+                profile = person.user;
+                break;
+            case 'HOST':
+                profile = person.host;
+                break;
+            case 'ADMIN':
+                profile = person.admin;
+                break;
+        }
+
+        return {
+            id: person.id,
+            email: person.email,
+            role: person.role,
+            isDeleted: person.isDeleted,
+            createdAt: person.createdAt,
+            updatedAt: person.updatedAt,
+            profile: profile
+        };
+    });
+
+    const total = await prisma.person.count({
+        where: whereConditions
+    });
+
+    return {
+        meta: {
+            page,
+            limit,
+            total
+        },
+        data: transformedData
+    };
+};
+
 // Get dashboard statistics
 const getDashboardStats = async () => {
     const [
@@ -591,5 +724,6 @@ export const AdminService = {
     softDeletePersonFromDB,
     getAllUsers,
     getAllHosts,
+    getAllPersonsFromDB,
     getDashboardStats
 };
