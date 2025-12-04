@@ -155,12 +155,20 @@ const getEventById = async (id: string): Promise<Event | null> => {
 };
 
 
-const updateEventById = async (id: string, data: Partial<Event>): Promise<Event> => {
-    await prisma.event.findUniqueOrThrow({
+const updateEventById = async (id: string, user: JwtPayload, data: Partial<Event>): Promise<Event> => {
+    const event = await prisma.event.findUniqueOrThrow({
         where: {
             id,
         }
     });
+
+    // Only host or admin can update
+    const isOwner = event.hostEmail === user.email;
+    const isAdmin = user.role === UserRole.ADMIN;
+
+    if (!isOwner && !isAdmin) {
+        throw new ApiError(httpStatus.FORBIDDEN, "Not allowed to update this event");
+    }
 
     const result = await prisma.event.update({
         where: {

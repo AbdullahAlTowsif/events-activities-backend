@@ -49,10 +49,11 @@ const getEventById = catchAsync(async (req: Request, res: Response) => {
 });
 
 
-const updateEventById = catchAsync(async (req: Request, res: Response) => {
+const updateEventById = catchAsync(async (req: Request & { user?: any }, res: Response) => {
     const { id } = req.params;
+    const user = req.user;
 
-    const result = await EventService.updateEventById(id as string, req.body);
+    const result = await EventService.updateEventById(id as string, user, req.body);
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
