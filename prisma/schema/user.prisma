@@ -1,14 +1,15 @@
 model Person {
-    id        String   @id @default(uuid())
-    email     String   @unique
-    password  String
-    role      UserRole @default(USER)
-    isDeleted Boolean  @default(false)
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    user      User?
-    admin     Admin?
-    host      Host?
+    id               String            @id @default(uuid())
+    email            String            @unique
+    password         String
+    role             UserRole          @default(USER)
+    isDeleted        Boolean           @default(false)
+    createdAt        DateTime          @default(now())
+    updatedAt        DateTime          @updatedAt
+    user             User?
+    admin            Admin?
+    host             Host?
+    hostApplications HostApplication[]
 
     @@map("persons")
 }
@@ -32,7 +33,8 @@ model User {
     reviews      Review[]
     payments     Payment[]
 
-    person Person @relation(fields: [email], references: [email])
+    person           Person            @relation(fields: [email], references: [email])
+    hostApplications HostApplication[]
 
     @@map("users")
 }
@@ -78,4 +80,27 @@ model Host {
     person Person @relation(fields: [email], references: [email])
 
     @@map("hosts")
+}
+
+model HostApplication {
+    id            String                @id @default(uuid())
+    userEmail     String
+    user          User                  @relation(fields: [userEmail], references: [email])
+    email         String
+    name          String
+    contactNumber String
+    address       String
+    gender        Gender
+    interests     String[]
+    reason        String? // Why they want to become a host
+    status        HostApplicationStatus @default(PENDING)
+    reviewedBy    String? // Admin who reviewed the application
+    reviewedAt    DateTime?
+    feedback      String? // Admin feedback/reason for rejection
+    createdAt     DateTime              @default(now())
+    updatedAt     DateTime              @updatedAt
+    person        Person?               @relation(fields: [personId], references: [id])
+    personId      String?
+
+    @@map("host_applications")
 }
