@@ -7,3 +7,4 @@ declare global {
         }
     }
 }
+declare module 'package-name';
