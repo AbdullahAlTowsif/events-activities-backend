@@ -4,7 +4,6 @@ import { Request } from "express";
 import { fileUploader } from "../../helper/fileUploader";
 import { envVars } from "../../config/env";
 import { prisma } from "../../utils/prisma";
-import { IJWTPayload } from "../../interfaces/common";
 import { IPaginationOptions } from "../../interfaces/pagination";
 import { paginationHelper } from "../../helper/paginationHelper";
 import { personSearchableFields } from "./user.constants";

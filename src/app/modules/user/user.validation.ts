@@ -17,6 +17,7 @@ const createAdmin = z.object({
         contactNumber: z.string({
             error: "Contact Number is required!",
         }),
+        about: z.string().optional(),
         address: z.string().optional(),
         gender: z.enum([Gender.MALE, Gender.FEMALE]),
         interests: z.array(z.string("Interest is required")),
@@ -39,6 +40,7 @@ const createHost = z.object({
         contactNumber: z.string({
             error: "Contact Number is required!",
         }),
+        about: z.string().optional(),
         address: z.string().optional(),
         gender: z.enum([Gender.MALE, Gender.FEMALE]),
         interests: z.array(z.string("Interest is required")),
@@ -61,6 +63,7 @@ const createUser = z.object({
         contactNumber: z.string({
             error: "Contact Number is required!",
         }),
+        about: z.string().optional(),
         address: z.string().optional(),
         gender: z.enum([Gender.MALE, Gender.FEMALE]),
         interests: z.array(z.string("Interest is required")),

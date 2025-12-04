@@ -22,6 +22,7 @@ model User {
     role          UserRole @default(USER)
     profilePhoto  String?
     contactNumber String
+    about         String?
     address       String?
     gender        Gender
     interests     String[]
@@ -47,6 +48,7 @@ model Admin {
     role          UserRole @default(USER)
     profilePhoto  String?
     contactNumber String
+    about         String?
     address       String?
     gender        Gender
     interests     String[]
@@ -67,6 +69,7 @@ model Host {
     role          UserRole @default(USER)
     profilePhoto  String?
     contactNumber String
+    about         String?
     address       String
     gender        Gender
     interests     String[]
@@ -100,7 +103,7 @@ model HostApplication {
     createdAt     DateTime              @default(now())
     updatedAt     DateTime              @updatedAt
     person        Person?               @relation(fields: [personEmail], references: [email])
-    personEmail      String?
+    personEmail   String?
 
     @@map("host_applications")
 }
