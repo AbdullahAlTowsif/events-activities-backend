@@ -55,7 +55,7 @@ router.patch(
     fileUploader.upload.single('file'),
     (req: Request, res: Response, next: NextFunction) => {
         req.body = JSON.parse(req.body.data)
-        return UserController.updateMyProfie(req, res, next)
+        return UserController.updateMyProfile(req, res, next)
     }
 );
 

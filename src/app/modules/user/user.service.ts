@@ -312,52 +312,92 @@ const getMyProfile = async (user: JwtPayload) => {
 };
 
 
-const updateMyProfie = async (user: JwtPayload, req: Request) => {
-    const personInfo = await prisma.person.findUniqueOrThrow({
+const updateMyProfile = async (user: JwtPayload, req: Request) => {
+    // Fetch person info safely
+    const personInfo = await prisma.person.findFirstOrThrow({
         where: {
             email: user?.email,
             isDeleted: false
         }
     });
 
+    // Handle file upload
     const file = req.file;
+    let profilePhotoUrl;
+
     if (file) {
-        const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
-        req.body.profilePhoto = uploadToCloudinary?.secure_url;
+        const uploaded = await fileUploader.uploadToCloudinary(file);
+        profilePhotoUrl = uploaded?.secure_url;
     }
 
-    // Prepare update data with proper type conversions
-    const updateData = { ...req.body };
+    // Handle JSON body or form-data
+    let parsedData: Record<string, any> = {};
 
-    let profileInfo;
-
-    if (personInfo.role === UserRole.ADMIN) {
-        profileInfo = await prisma.admin.update({
-            where: {
-                email: personInfo.email
-            },
-            data: updateData
-        })
-    }
-    else if (personInfo.role === UserRole.HOST) {
-        profileInfo = await prisma.host.update({
-            where: {
-                email: personInfo.email
-            },
-            data: updateData
-        })
-    }
-    else if (personInfo.role === UserRole.USER) {
-        profileInfo = await prisma.user.update({
-            where: {
-                email: personInfo.email
-            },
-            data: updateData
-        })
+    if (req.body.data) {
+        parsedData = JSON.parse(req.body.data);
+    } else {
+        parsedData = req.body;
     }
 
-    return { ...profileInfo };
-}
+    // Attach uploaded photo
+    if (profilePhotoUrl) {
+        parsedData.profilePhoto = profilePhotoUrl;
+    }
+
+    const updateData: any = { ...parsedData };
+
+    // Convert interests string → array for Prisma
+    if (updateData.interests !== undefined) {
+        if (typeof updateData.interests === "string") {
+            // Split by comma and clean up
+            const interestsArray = updateData.interests
+                .split(",")
+                .map((i: string) => i.trim())
+                .filter((i: string) => i.length > 0);
+
+            // Update with Prisma's set operator
+            updateData.interests = {
+                set: interestsArray
+            };
+        } else if (Array.isArray(updateData.interests)) {
+            // Already an array, use set operator
+            updateData.interests = {
+                set: updateData.interests
+            };
+        }
+        // If it's already in Prisma format or undefined, leave as is
+    }
+
+    // Role-based table update
+    let updatedProfile;
+
+    switch (personInfo.role) {
+        case UserRole.ADMIN:
+            updatedProfile = await prisma.admin.update({
+                where: { email: personInfo.email },
+                data: updateData
+            });
+            break;
+
+        case UserRole.HOST:
+            updatedProfile = await prisma.host.update({
+                where: { email: personInfo.email },
+                data: updateData
+            });
+            break;
+
+        case UserRole.USER:
+            updatedProfile = await prisma.user.update({
+                where: { email: personInfo.email },
+                data: updateData
+            });
+            break;
+    }
+
+    return updatedProfile;
+};
+
+
 
 
 export const UserService = {
@@ -366,5 +406,5 @@ export const UserService = {
     createUser,
     getMyProfile,
     getAllFromDB,
-    updateMyProfie
+    updateMyProfile
 }
