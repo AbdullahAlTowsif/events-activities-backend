@@ -157,7 +157,7 @@ const getHostByEmail = catchAsync(async (req: Request, res: Response) => {
 
 
 const getMyCreatedEvents = catchAsync(async (req: Request, res: Response) => {
-    console.log(req);
+    // console.log(req);
     const email = req.user?.email;
     const role = req.user?.role;
     console.log(email, role, "from controller");

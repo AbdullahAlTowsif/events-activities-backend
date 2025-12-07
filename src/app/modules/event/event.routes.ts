@@ -24,6 +24,12 @@ router.get(
     EventController.getAllEvent
 );
 
+router.get(
+    "/host/my-created-events",
+    auth(UserRole.HOST),
+    EventController.getMyCreatedEvents
+);
+
 router.get('/:id', EventController.getEventById);
 
 router.patch(
@@ -65,11 +71,7 @@ router.get(
     EventController.getHostByEmail
 );
 
-router.get(
-    "/host/my-created-events",
-    auth(UserRole.HOST),
-    EventController.getMyCreatedEvents
-);
+
 
 
 export const EventRoutes = router;
