@@ -25,8 +25,11 @@ model Participant {
   event     Event      @relation(fields: [eventId], references: [id])
   eventId   String
   user      User       @relation(fields: [userEmail], references: [email])
-  userEmail    String
+  userEmail String
   status    JoinStatus @default(ACCEPTED)
   paid      Boolean    @default(false)
   createdAt DateTime   @default(now())
+
+  paymentId String?
+  payment   Payment? @relation(fields: [paymentId], references: [id])
 }

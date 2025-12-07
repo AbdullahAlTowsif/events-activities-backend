@@ -7,7 +7,10 @@ model Payment {
     amount                Int
     currency              String
     stripePaymentIntentId String?
+    stripeSessionId       String?
     status                PaymentStatus @default(PENDING)
     createdAt             DateTime      @default(now())
     updatedAt             DateTime      @updatedAt
+
+    participants Participant[]
 }
