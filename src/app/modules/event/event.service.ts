@@ -475,6 +475,32 @@ const createReview = async (
 };
 
 
+const getHostByEmail = async (email: string) => {
+    const host = await prisma.host.findUnique({
+        where: { email },
+        include: {
+            events: {
+                select: {
+                    id: true,
+                    title: true,
+                    dateTime: true,
+                    location: true,
+                    status: true,
+                    images: true,
+                },
+                orderBy: { createdAt: "desc" }
+            },
+        }
+    });
+
+    if (!host) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Host not found");
+    }
+
+    return host;
+};
+
+
 export const EventService = {
     createEvent,
     getAllEvent,
@@ -484,5 +510,6 @@ export const EventService = {
     joinEvent,
     leaveEvent,
     getParticipants,
-    createReview
+    createReview,
+    getHostByEmail
 };

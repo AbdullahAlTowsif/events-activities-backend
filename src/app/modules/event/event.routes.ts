@@ -60,4 +60,10 @@ router.post(
 );
 
 
+router.get(
+    "/host/:email",
+    EventController.getHostByEmail
+);
+
+
 export const EventRoutes = router;
