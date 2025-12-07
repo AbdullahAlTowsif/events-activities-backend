@@ -48,7 +48,7 @@ router.post(
 
 router.get(
     "/:id/participants",
-    auth(UserRole.ADMIN, UserRole.HOST),
+    auth(UserRole.ADMIN, UserRole.HOST, UserRole.USER),
     EventController.getParticipants
 );
 
