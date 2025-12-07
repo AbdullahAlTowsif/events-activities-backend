@@ -367,8 +367,8 @@ const getParticipants = async (
         throw new ApiError(httpStatus.NOT_FOUND, "Event not found");
     }
 
-    // 2. Authorization: must be HOST of event OR ADMIN
-    if (requesterRole !== UserRole.ADMIN && event.hostEmail !== requesterEmail) {
+    // 2. Authorization: must be HOST of event OR ADMIN OR USER
+    if (requesterRole !== UserRole.ADMIN && requesterRole !== UserRole.USER && event.hostEmail !== requesterEmail) {
         throw new ApiError(
             httpStatus.FORBIDDEN,
             "You are not authorized to view participants"
