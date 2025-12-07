@@ -500,6 +500,34 @@ const getHostByEmail = async (email: string) => {
     return host;
 };
 
+const getMyEvents = async (email: string, role: string) => {
+    // Only HOST can access this API
+    if (role !== UserRole.HOST) {
+        throw new ApiError(httpStatus.FORBIDDEN, "Only hosts can view their events");
+    }
+
+    // Check host exists
+    const host = await prisma.host.findUnique({
+        where: { email },
+    });
+
+    if (!host) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Host not found");
+    }
+
+    // Get events created by the host
+    const events = await prisma.event.findMany({
+        where: {
+            hostEmail: email,
+        },
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
+
+    return events;
+};
+
 
 export const EventService = {
     createEvent,
@@ -511,5 +539,6 @@ export const EventService = {
     leaveEvent,
     getParticipants,
     createReview,
-    getHostByEmail
+    getHostByEmail,
+    getMyEvents
 };

@@ -65,5 +65,11 @@ router.get(
     EventController.getHostByEmail
 );
 
+router.get(
+    "/my-events",
+    auth(UserRole.HOST),
+    EventController.getMyEvents
+);
+
 
 export const EventRoutes = router;
