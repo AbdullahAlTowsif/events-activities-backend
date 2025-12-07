@@ -66,9 +66,9 @@ router.get(
 );
 
 router.get(
-    "/my-events",
+    "/host/my-created-events",
     auth(UserRole.HOST),
-    EventController.getMyEvents
+    EventController.getMyCreatedEvents
 );
 
 

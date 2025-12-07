@@ -142,7 +142,7 @@ const createReview = catchAsync(async (req: Request, res: Response) => {
 });
 
 
-const getHostByEmail = catchAsync(async (req, res) => {
+const getHostByEmail = catchAsync(async (req: Request, res: Response) => {
     const email = req.params.email;
 
     const result = await EventService.getHostByEmail(email as string);
@@ -156,17 +156,21 @@ const getHostByEmail = catchAsync(async (req, res) => {
 });
 
 
-const getMyEvents = catchAsync(async (req, res) => {
-    const email = req.user?.email as string;
-    const role = req.user?.role as string;
+const getMyCreatedEvents = catchAsync(async (req: Request, res: Response) => {
+    console.log(req);
+    const email = req.user?.email;
+    const role = req.user?.role;
+    console.log(email, role, "from controller");
 
-    const result = await EventService.getMyEvents(email, role);
+    const result = await EventService.getMyCreatedEvents(email, role);
+    console.log("get my events controller", result);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: "My events fetched successfully",
-        data: result,
+        // data: "data honde"
+        data: result || null,
     });
 });
 
@@ -181,5 +185,5 @@ export const EventController = {
     getParticipants,
     createReview,
     getHostByEmail,
-    getMyEvents
+    getMyCreatedEvents
 };

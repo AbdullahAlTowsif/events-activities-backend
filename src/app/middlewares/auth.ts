@@ -8,6 +8,10 @@ import { envVars } from "../config/env";
 const auth = (...roles: string[]) => {
     return async (req: Request & { user?: any }, res: Response, next: NextFunction) => {
         try {
+            console.log("=== AUTH MIDDLEWARE DEBUG ===");
+            console.log("Cookies:", req.cookies);
+            console.log("Auth Header:", req.headers.authorization);
+            
             let token = req.cookies.accessToken;
 
             if (!token && req.headers.authorization) {

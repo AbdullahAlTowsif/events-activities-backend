@@ -500,7 +500,8 @@ const getHostByEmail = async (email: string) => {
     return host;
 };
 
-const getMyEvents = async (email: string, role: string) => {
+const getMyCreatedEvents = async (email: string, role: string) => {
+    console.log(email, role);
     // Only HOST can access this API
     if (role !== UserRole.HOST) {
         throw new ApiError(httpStatus.FORBIDDEN, "Only hosts can view their events");
@@ -540,5 +541,5 @@ export const EventService = {
     getParticipants,
     createReview,
     getHostByEmail,
-    getMyEvents
+    getMyCreatedEvents
 };
