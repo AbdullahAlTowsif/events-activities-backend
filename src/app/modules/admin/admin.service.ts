@@ -1,4 +1,3 @@
-// src/app/modules/admin/admin.service.ts
 import { Admin, Host, Person, Prisma, User, UserRole } from "@prisma/client";
 import { adminSearchAbleFields } from "./admin.constant";
 import { paginationHelper } from "../../helper/paginationHelper";
@@ -672,12 +671,12 @@ const getDashboardStats = async () => {
             }
         }),
 
-        // Upcoming events (next 7 days)
+        // Upcoming events (next 30 days)
         prisma.event.findMany({
             where: {
                 dateTime: {
                     gte: new Date(),
-                    lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                    lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
                 },
                 status: 'OPEN'
             },
