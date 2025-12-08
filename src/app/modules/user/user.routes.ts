@@ -59,5 +59,11 @@ router.patch(
     }
 );
 
+router.get(
+  "/my-paid-events",
+  auth(UserRole.USER, UserRole.ADMIN),
+  UserController.getMyPaidEvents
+);
+
 
 export const UserRoutes = router;

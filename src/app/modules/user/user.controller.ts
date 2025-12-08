@@ -7,6 +7,7 @@ import { IJWTPayload } from "../../interfaces/common";
 import pick from "../../helper/pick";
 import { personFilterableFields } from "./user.constants";
 import { JwtPayload } from "jsonwebtoken";
+import ApiError from "../../errors/ApiError";
 
 const createUser = catchAsync(async (req: Request, res: Response) => {
     const result = await UserService.createUser(req);
@@ -89,11 +90,31 @@ const updateMyProfile = catchAsync(async (req: Request & { user?: JwtPayload }, 
     })
 });
 
+
+const getMyPaidEvents = catchAsync(async (req: Request & { user?: JwtPayload }, res: Response) => {
+    const userEmail = req.user?.email as string;
+
+    if (!userEmail) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, "User not authenticated");
+    }
+
+    const result = await UserService.getMyPaidEvents(userEmail);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Paid events retrieved successfully",
+        data: result,
+    });
+});
+
+
 export const UserController = {
     createUser,
     createAdmin,
     createHost,
     getMyProfile,
     getAllFromDB,
-    updateMyProfile
+    updateMyProfile,
+    getMyPaidEvents
 }

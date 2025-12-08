@@ -399,6 +399,65 @@ const updateMyProfile = async (user: JwtPayload, req: Request) => {
 
 
 
+const getMyPaidEvents = async (userEmail: string) => {
+  // fetch all participants for this user where paid === true
+  const participants = await prisma.participant.findMany({
+    where: {
+      userEmail,
+      paid: true,
+    },
+    include: {
+      // include event plus its host for display purposes
+      event: {
+        include: {
+          host: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              profilePhoto: true,
+            }
+          }
+        }
+      },
+      // include associated payment if available
+      payment: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  // map into a friendly DTO
+  const results = participants.map((p) => ({
+    participantId: p.id,
+    joinedAt: p.createdAt,
+    joinStatus: p.status,
+    paid: p.paid,
+    payment: p.payment ?? null,
+    event: p.event ? {
+      id: p.event.id,
+      title: p.event.title,
+      type: p.event.type,
+      location: p.event.location,
+      dateTime: p.event.dateTime,
+      joiningFee: p.event.joiningFee,
+      currency: p.event.currency,
+      status: p.event.status,
+      images: p.event.images,
+      host: p.event.host ? {
+        id: p.event.host.id,
+        name: p.event.host.name,
+        email: p.event.host.email,
+        profilePhoto: p.event.host.profilePhoto
+      } : null
+    } : null
+  }));
+
+  return results;
+};
+
+
 
 export const UserService = {
     createAdmin,
@@ -406,5 +465,6 @@ export const UserService = {
     createUser,
     getMyProfile,
     getAllFromDB,
-    updateMyProfile
+    updateMyProfile,
+    getMyPaidEvents
 }
