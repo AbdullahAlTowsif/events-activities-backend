@@ -417,6 +417,14 @@ const createReview = async (
 
     const hostEmail = event.hostEmail;
 
+    // event must already be completed
+    if (new Date(event.dateTime) > new Date()) {
+        throw new ApiError(
+            httpStatus.FORBIDDEN,
+            "You can only review an event after it has taken place"
+        );
+    }
+
     // 2. Ensure user participated in the event
     const participation = await prisma.participant.findFirst({
         where: {
