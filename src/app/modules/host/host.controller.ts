@@ -18,7 +18,7 @@ const applyToBeHost = catchAsync(async (req: Request, res: Response) => {
 
 const getMyApplications = catchAsync(async (req: Request, res: Response) => {
     const user = (req as any).user;
-    const result = await HostApplicationService.getMyApplications(user.userId);
+    const result = await HostApplicationService.getMyApplications(user.email);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
