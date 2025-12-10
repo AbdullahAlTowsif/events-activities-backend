@@ -6,6 +6,7 @@ import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import pick from '../../helper/pick';
 import { UserRole } from '@prisma/client';
+import { email } from 'zod';
 
 const getAllAdmin = catchAsync(async (req: Request, res: Response) => {
     const filters = pick(req.query, adminFilterableFields);
@@ -35,12 +36,14 @@ const getPersonById = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updatePersonIntoDB = catchAsync(async (req: Request, res: Response) => {
-    const { id: userId } = req.params;
+    const { id: personId } = req.params;
+    console.log("req.params ------>", req.params);
+    // console.log(personEmail);
 
-    console.log('User ID:', userId);
+    console.log('User ID:', personId);
     console.log('Request body:', req.body);
 
-    const result = await AdminService.updatePersonIntoDB(userId as string, req.body);
+    const result = await AdminService.updatePersonIntoDB(personId as string, req.body);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
