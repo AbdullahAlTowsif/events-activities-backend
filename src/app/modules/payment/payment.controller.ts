@@ -58,29 +58,6 @@ const initPayment = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-// Stripe webhook receiver (raw body must be used in route)
-// const stripeWebhook = catchAsync(async (req: Request, res: Response) => {
-//     const sig = req.headers["stripe-signature"] as string | undefined;
-//     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-//     if (!webhookSecret) {
-//         console.error("Missing STRIPE_WEBHOOK_SECRET");
-//         return res.status(500).send("Webhook not configured");
-//     }
-
-//     let event: Stripe.Event;
-//     try {
-//         // req.body is raw buffer (route must use express.raw({type: 'application/json'}))
-//         event = stripe.webhooks.constructEvent(req.body as Buffer, sig!, webhookSecret);
-//     } catch (err: any) {
-//         console.error("⚠️ Webhook signature verification failed.", err.message);
-//         return res.status(400).send(`Webhook Error: ${err.message}`);
-//     }
-
-//     await PaymentService.handleStripeWebhookEvent(event);
-
-//     // respond 200 quickly
-//     res.status(200).json({ received: true });
-// });
 
 const stripeWebhook = catchAsync(async (req: Request, res: Response) => {
     const sig = req.headers["stripe-signature"] as string | undefined;
@@ -113,81 +90,6 @@ const stripeWebhook = catchAsync(async (req: Request, res: Response) => {
     }
 });
 
-// const verifyPayment = catchAsync(async (req: Request, res: Response) => {
-//     const sessionId = req.query.session_id as string;
-
-//     if (!sessionId) {
-//         throw new ApiError(httpStatus.BAD_REQUEST, "Session ID required");
-//     }
-
-//     console.log('Looking for payment with sessionId:', sessionId);
-
-//     // First try to find by stripeSessionId
-//     const payment = await prisma.payment.findFirst({
-//         where: {
-//             stripeSessionId: sessionId,
-//         },
-//         include: {
-//             participants: {
-//                 take: 1, // Get first participant
-//             },
-//         },
-//     });
-
-//     if (!payment) {
-//         console.log('Payment not found by stripeSessionId, trying stripePaymentIntentId');
-//         // Try by stripePaymentIntentId
-//         const paymentByIntent = await prisma.payment.findFirst({
-//             where: {
-//                 stripePaymentIntentId: sessionId,
-//             },
-//             include: {
-//                 participants: {
-//                     take: 1,
-//                 },
-//             },
-//         });
-
-//         if (!paymentByIntent) {
-//             console.log('Payment not found by any ID');
-//             return sendResponse(res, {
-//                 statusCode: httpStatus.NOT_FOUND,
-//                 success: false,
-//                 message: "Payment not found",
-//                 data: null
-//             });
-//         }
-
-//         sendResponse(res, {
-//             statusCode: httpStatus.OK,
-//             success: true,
-//             message: "Payment status retrieved",
-//             data: {
-//                 status: paymentByIntent.status,
-//                 participantStatus: paymentByIntent.participants[0]?.status,
-//                 paid: paymentByIntent.participants[0]?.paid,
-//                 paymentId: paymentByIntent.id,
-//                 stripeSessionId: paymentByIntent.stripeSessionId,
-//                 stripePaymentIntentId: paymentByIntent.stripePaymentIntentId
-//             }
-//         });
-//         return;
-//     }
-
-//     sendResponse(res, {
-//         statusCode: httpStatus.OK,
-//         success: true,
-//         message: "Payment status retrieved",
-//         data: {
-//             status: payment.status,
-//             participantStatus: payment.participants[0]?.status,
-//             paid: payment.participants[0]?.paid,
-//             paymentId: payment.id,
-//             stripeSessionId: payment.stripeSessionId,
-//             stripePaymentIntentId: payment.stripePaymentIntentId
-//         }
-//     });
-// });
 
 const verifyPayment = catchAsync(async (req: Request, res: Response) => {
     const sessionId = req.query.session_id as string;
