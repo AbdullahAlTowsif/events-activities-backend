@@ -31,7 +31,7 @@ app.use("/api", router);
 
 app.get('/', (req: Request, res: Response) => {
     res.send({
-        message: "Events & Activities Server is running..",
+        message: "Events & Activities Server is running...😃",
         environment: envVars.NODE_ENV,
         uptime: process.uptime().toFixed(2) + " sec",
         timeStamp: new Date().toISOString()
