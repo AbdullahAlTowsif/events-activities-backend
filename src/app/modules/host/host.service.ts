@@ -84,6 +84,98 @@ const getAllApplications = async () => {
     return applications;
 };
 
+// const updateApplicationStatus = async (
+//     applicationId: string,
+//     adminEmail: string,
+//     data: {
+//         status: HostApplicationStatus;
+//         feedback?: string;
+//     }
+// ) => {
+//     return await prisma.$transaction(async (tx) => {
+//         const application = await tx.hostApplication.findUnique({
+//             where: { id: applicationId },
+//             include: {
+//                 user: true
+//             }
+//         });
+
+//         if (!application) {
+//             throw new Error('Application not found');
+//         }
+
+//         if (application.status !== HostApplicationStatus.PENDING) {
+//             throw new Error('Application has already been processed');
+//         }
+
+//         // Update application status
+//         const updatedApplication = await tx.hostApplication.update({
+//             where: { id: applicationId },
+//             data: {
+//                 status: data.status,
+//                 reviewedBy: adminEmail,
+//                 reviewedAt: new Date(),
+//                 feedback: data.feedback || ""
+//             }
+//         });
+
+//         if (data.status === HostApplicationStatus.APPROVED) {
+//             // OPTION 1: Delete the HostApplication record first
+//             await tx.hostApplication.delete({
+//                 where: { id: applicationId }
+//             });
+
+//             // OPTION 2: Or delete all applications for this user
+//             // await tx.hostApplication.deleteMany({
+//             //     where: { userEmail: application.email }
+//             // });
+
+//             // Then delete the user record
+//             await tx.user.delete({
+//                 where: { email: application.email }
+//             });
+
+//             // Check if host already exists
+//             const existingHost = await tx.host.findUnique({
+//                 where: { email: application.email }
+//             });
+
+//             if (!existingHost) {
+//                 // Create host record
+//                 await tx.host.create({
+//                     data: {
+//                         email: application.email,
+//                         name: application.name,
+//                         password: application.user.password,
+//                         role: UserRole.HOST,
+//                         profilePhoto: application.user.profilePhoto || "",
+//                         contactNumber: application.contactNumber,
+//                         address: application.address,
+//                         gender: application.gender,
+//                         interests: application.interests
+//                     }
+//                 });
+//             }
+
+//             // Update Person role to HOST
+//             await tx.person.update({
+//                 where: { email: application.email },
+//                 data: {
+//                     role: UserRole.HOST
+//                 }
+//             });
+
+//             return {
+//                 message: 'Application approved and user converted to host',
+//                 // Don't return the application since it was deleted
+//             };
+//         }
+
+//         return updatedApplication;
+//     });
+// };
+
+
 const updateApplicationStatus = async (
     applicationId: string,
     adminEmail: string,
@@ -93,6 +185,8 @@ const updateApplicationStatus = async (
     }
 ) => {
     return await prisma.$transaction(async (tx) => {
+
+        // 1️⃣ Find application
         const application = await tx.hostApplication.findUnique({
             where: { id: applicationId },
             include: {
@@ -101,14 +195,14 @@ const updateApplicationStatus = async (
         });
 
         if (!application) {
-            throw new Error('Application not found');
+            throw new Error("Application not found");
         }
 
         if (application.status !== HostApplicationStatus.PENDING) {
-            throw new Error('Application has already been processed');
+            throw new Error("Application has already been processed");
         }
 
-        // Update application status
+        // 2️⃣ Update application status
         const updatedApplication = await tx.hostApplication.update({
             where: { id: applicationId },
             data: {
@@ -119,29 +213,17 @@ const updateApplicationStatus = async (
             }
         });
 
+        // ===========================
+        // ✅ APPROVED FLOW
+        // ===========================
         if (data.status === HostApplicationStatus.APPROVED) {
-            // OPTION 1: Delete the HostApplication record first
-            await tx.hostApplication.delete({
-                where: { id: applicationId }
-            });
 
-            // OPTION 2: Or delete all applications for this user
-            // await tx.hostApplication.deleteMany({
-            //     where: { userEmail: application.email }
-            // });
-
-            // Then delete the user record
-            await tx.user.delete({
-                where: { email: application.email }
-            });
-
-            // Check if host already exists
+            // 3️⃣ Create Host (if not exists)
             const existingHost = await tx.host.findUnique({
                 where: { email: application.email }
             });
 
             if (!existingHost) {
-                // Create host record
                 await tx.host.create({
                     data: {
                         email: application.email,
@@ -157,7 +239,7 @@ const updateApplicationStatus = async (
                 });
             }
 
-            // Update Person role to HOST
+            // 4️⃣ Update Person role → HOST
             await tx.person.update({
                 where: { email: application.email },
                 data: {
@@ -165,9 +247,38 @@ const updateApplicationStatus = async (
                 }
             });
 
+            // 5️⃣ SOFT DELETE User (IMPORTANT)
+            await tx.user.update({
+                where: { email: application.email },
+                data: {
+                    isDeleted: true
+                }
+            });
+
+            // 6️⃣ Delete Host Application
+            await tx.hostApplication.delete({
+                where: { id: applicationId }
+            });
+
             return {
-                message: 'Application approved and user converted to host',
-                // Don't return the application since it was deleted
+                success: true,
+                message: "Application approved. User promoted to Host."
+            };
+        }
+
+        // ===========================
+        // ❌ REJECTED FLOW
+        // ===========================
+        if (data.status === HostApplicationStatus.REJECTED) {
+
+            // Delete host application
+            await tx.hostApplication.delete({
+                where: { id: applicationId }
+            });
+
+            return {
+                success: true,
+                message: "Application rejected successfully."
             };
         }
 
