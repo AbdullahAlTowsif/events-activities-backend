@@ -51,6 +51,21 @@ const getAllAdmin = async (params: IAdminFilterRequest, options: IPaginationOpti
             [options.sortBy]: options.sortOrder
         } : {
             createdAt: 'desc'
+        },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            profilePhoto: true,
+            contactNumber: true,
+            about: true,
+            address: true,
+            gender: true,
+            interests: true,
+            isDeleted: true,
+            createdAt: true,
+            updatedAt: true,
         }
     });
 
@@ -75,9 +90,45 @@ const getPersonById = async (id: string): Promise<any | null> => {
             isDeleted: false
         },
         include: {
-            user: true,
-            host: true,
-            admin: true
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    profilePhoto: true,
+                    contactNumber: true,
+                    isDeleted: true,
+                    createdAt: true,
+                    updatedAt: true
+                }
+            },
+            host: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    profilePhoto: true,
+                    contactNumber: true,
+                    isDeleted: true,
+                    createdAt: true,
+                    updatedAt: true
+                }
+            },
+            admin: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    profilePhoto: true,
+                    contactNumber: true,
+                    isDeleted: true,
+                    createdAt: true,
+                    updatedAt: true
+                }
+            }
         }
     });
 
@@ -105,84 +156,6 @@ const getPersonById = async (id: string): Promise<any | null> => {
     };
 };
 
-// const updatePersonIntoDB = async (
-//     userId: string,
-//     data: Partial<User & Host & Admin>
-// ): Promise<User | Host | Admin> => {
-
-//     // First, get the person to know their role
-//     const person = await prisma.person.findUnique({
-//         where: {
-//             id: userId,
-//             isDeleted: false
-//         }
-//     });
-
-//     if (!person) {
-//         throw new Error('Person not found');
-//     }
-
-//     const role = person.role as UserRole; // Get role from person
-
-//     let result;
-
-//     // Update based on person's role
-//     switch (role) {
-//         case UserRole.USER:
-//             // Check if user exists
-//             await prisma.user.findUniqueOrThrow({
-//                 where: { email: person.email }
-//             });
-
-//             result = await prisma.user.update({
-//                 where: { email: person.email },
-//                 data: data as Partial<User>
-//             });
-//             break;
-
-//         case UserRole.HOST:
-//             // Check if host exists
-//             await prisma.host.findUniqueOrThrow({
-//                 where: { email: person.email }
-//             });
-
-//             result = await prisma.host.update({
-//                 where: { email: person.email },
-//                 data: data as Partial<Host>
-//             });
-//             break;
-
-//         case UserRole.ADMIN:
-//             // Check if admin exists
-//             await prisma.admin.findUniqueOrThrow({
-//                 where: { email: person.email }
-//             });
-
-//             result = await prisma.admin.update({
-//                 where: { email: person.email },
-//                 data: data as Partial<Admin>
-//             });
-//             break;
-
-//         default:
-//             throw new Error('Invalid role');
-//     }
-
-//     // Also update person if email or password changed
-//     if (data.email || data.password) {
-//         const updateData: any = {};
-//         if (data.email) updateData.email = data.email;
-//         if (data.password) updateData.password = data.password;
-
-//         await prisma.person.update({
-//             where: { id: userId },
-//             data: updateData
-//         });
-//     }
-
-//     return result;
-// };
-
 const updatePersonIntoDB = async (
     personId: string,
     data: Partial<User & Host & Admin>
@@ -203,6 +176,28 @@ const updatePersonIntoDB = async (
 
     let result;
 
+    // Whitelist writable fields (C4/H5) — email, password, role and isDeleted are never accepted from the client.
+    const writableFields = [
+        "name",
+        "profilePhoto",
+        "contactNumber",
+        "about",
+        "address",
+        "gender",
+        "interests",
+    ] as const;
+
+    const updateData: Record<string, unknown> = {};
+    for (const field of writableFields) {
+        if (data[field as keyof typeof data] !== undefined) {
+            updateData[field] = data[field as keyof typeof data];
+        }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "No writable fields provided");
+    }
+
     // Update child table based on role
     switch (role) {
         case UserRole.USER: {
@@ -216,7 +211,7 @@ const updatePersonIntoDB = async (
 
             result = await prisma.user.update({
                 where: { email: email },
-                data: data,
+                data: updateData,
             });
             break;
         }
@@ -232,7 +227,7 @@ const updatePersonIntoDB = async (
 
             result = await prisma.host.update({
                 where: { email: email },
-                data: data,
+                data: updateData,
             });
             break;
         }
@@ -248,24 +243,13 @@ const updatePersonIntoDB = async (
 
             result = await prisma.admin.update({
                 where: { email: email },
-                data: data,
+                data: updateData,
             });
             break;
         }
 
         default:
             throw new ApiError(400, "Invalid role");
-    }
-
-    // Sync email/password within Person table
-    if (data.email || data.password) {
-        await prisma.person.update({
-            where: { id: personId },
-            data: {
-                email: data.email ?? person.email,
-                password: data.password ?? person.password,
-            },
-        });
     }
 
     return result;
@@ -564,7 +548,20 @@ const getAllHosts = async (params: any, options: IPaginationOptions) => {
         } : {
             createdAt: 'desc'
         },
-        include: {
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            profilePhoto: true,
+            contactNumber: true,
+            about: true,
+            address: true,
+            gender: true,
+            interests: true,
+            isDeleted: true,
+            createdAt: true,
+            updatedAt: true,
             _count: {
                 select: {
                     events: true,
@@ -587,139 +584,6 @@ const getAllHosts = async (params: any, options: IPaginationOptions) => {
         data: result
     };
 };
-
-// const getAllPersonsFromDB = async (params: any, options: IPaginationOptions) => {
-//     const { page, limit, skip } = paginationHelper.calculatePagination(options);
-//     const { searchTerm, ...filterData } = params;
-
-//     const andConditions: Prisma.PersonWhereInput[] = [];
-
-//     // Search only on email (since Person only has email)
-//     if (searchTerm) {
-//         andConditions.push({
-//             email: { contains: searchTerm, mode: 'insensitive' }
-//         });
-//     }
-
-//     // Filter conditions
-//     if (filterData.role) {
-//         andConditions.push({
-//             role: filterData.role
-//         });
-//         delete filterData.role;
-//     }
-
-//     // Other filters
-//     if (Object.keys(filterData).length > 0) {
-//         andConditions.push({
-//             AND: Object.keys(filterData).map(key => ({
-//                 [key]: {
-//                     equals: (filterData as any)[key]
-//                 }
-//             }))
-//         });
-//     }
-
-//     // Exclude deleted persons
-//     andConditions.push({
-//         isDeleted: false
-//     });
-
-//     const whereConditions: Prisma.PersonWhereInput = { AND: andConditions };
-
-//     const result = await prisma.person.findMany({
-//         where: whereConditions,
-//         skip,
-//         take: limit,
-//         orderBy: options.sortBy && options.sortOrder ? {
-//             [options.sortBy]: options.sortOrder
-//         } : {
-//             createdAt: 'desc'
-//         },
-//         include: {
-//             user: {
-//                 select: {
-//                     id: true,
-//                     name: true,
-//                     profilePhoto: true,
-//                     contactNumber: true,
-//                     address: true,
-//                     gender: true,
-//                     interests: true,
-//                     createdAt: true,
-//                     updatedAt: true
-//                 }
-//             },
-//             host: {
-//                 select: {
-//                     id: true,
-//                     name: true,
-//                     profilePhoto: true,
-//                     contactNumber: true,
-//                     address: true,
-//                     gender: true,
-//                     interests: true,
-//                     createdAt: true,
-//                     updatedAt: true
-//                 }
-//             },
-//             admin: {
-//                 select: {
-//                     id: true,
-//                     name: true,
-//                     profilePhoto: true,
-//                     contactNumber: true,
-//                     address: true,
-//                     gender: true,
-//                     interests: true,
-//                     createdAt: true,
-//                     updatedAt: true
-//                 }
-//             }
-//         }
-//     });
-
-//     // Transform data
-//     const transformedData = result.map(person => {
-//         let profile = null;
-
-//         // Determine which profile to use based on role
-//         switch (person.role) {
-//             case 'USER':
-//                 profile = person.user;
-//                 break;
-//             case 'HOST':
-//                 profile = person.host;
-//                 break;
-//             case 'ADMIN':
-//                 profile = person.admin;
-//                 break;
-//         }
-
-//         return {
-//             id: person.id,
-//             email: person.email,
-//             role: person.role,
-//             isDeleted: person.isDeleted,
-//             createdAt: person.createdAt,
-//             updatedAt: person.updatedAt,
-//             profile: profile
-//         };
-//     });
-
-//     const total = await prisma.person.count({
-//         where: whereConditions
-//     });
-
-//     return {
-//         meta: {
-//             page,
-//             limit,
-//             total
-//         },
-//         data: transformedData
-//     };
-// };
 
 // Get dashboard statistics
 

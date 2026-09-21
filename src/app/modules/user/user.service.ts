@@ -214,9 +214,45 @@ const getAllFromDB = async (params: any, options: IPaginationOptions) => {
             role: true,
             createdAt: true,
             updatedAt: true,
-            admin: true,
-            host: true,
-            user: true
+            admin: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    profilePhoto: true,
+                    contactNumber: true,
+                    isDeleted: true,
+                    createdAt: true,
+                    updatedAt: true
+                }
+            },
+            host: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    profilePhoto: true,
+                    contactNumber: true,
+                    isDeleted: true,
+                    createdAt: true,
+                    updatedAt: true
+                }
+            },
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    profilePhoto: true,
+                    contactNumber: true,
+                    isDeleted: true,
+                    createdAt: true,
+                    updatedAt: true
+                }
+            }
         }
     });
 
@@ -236,9 +272,10 @@ const getAllFromDB = async (params: any, options: IPaginationOptions) => {
 
 
 const getMyProfile = async (user: JwtPayload) => {
-    const personInfo = await prisma.user.findUniqueOrThrow({
+    const personInfo = await prisma.person.findUniqueOrThrow({
         where: {
             email: user?.email,
+            isDeleted: false,
         },
         select: {
             id: true,

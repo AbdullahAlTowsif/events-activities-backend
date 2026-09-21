@@ -14,6 +14,15 @@ const applyToBeHost = async (userEmail: string, data: {
         throw new Error('User not found');
     }
 
+    // Block soft-deleted / deactivated users from re-applying (H7)
+    const person = await prisma.person.findUnique({
+        where: { email: userEmail }
+    });
+
+    if (user.isDeleted || person?.isDeleted) {
+        throw new Error('Account is deactivated and cannot be promoted');
+    }
+
     if (user.role === UserRole.HOST || user.role === UserRole.ADMIN) {
         throw new Error('User is already a host or admin');
     }
@@ -218,6 +227,14 @@ const updateApplicationStatus = async (
         // ===========================
         if (data.status === HostApplicationStatus.APPROVED) {
 
+            // 2️⃣ Source the credential hash from the Person record so the
+            // promoted Host and Person stay in sync (H7)
+            const personRecord = await tx.person.findUnique({
+                where: { email: application.email }
+            });
+
+            const password = personRecord?.password ?? application.user.password;
+
             // 3️⃣ Create Host (if not exists)
             const existingHost = await tx.host.findUnique({
                 where: { email: application.email }
@@ -228,7 +245,7 @@ const updateApplicationStatus = async (
                     data: {
                         email: application.email,
                         name: application.name,
-                        password: application.user.password,
+                        password: password,
                         role: UserRole.HOST,
                         profilePhoto: application.user.profilePhoto || "",
                         contactNumber: application.contactNumber,
@@ -267,18 +284,23 @@ const updateApplicationStatus = async (
         }
 
         // ===========================
-        // ❌ REJECTED FLOW
+        // ❌ REJECTED FLOW — keep the application with feedback for the record
         // ===========================
         if (data.status === HostApplicationStatus.REJECTED) {
-
-            // Delete host application
-            await tx.hostApplication.delete({
-                where: { id: applicationId }
+            const rejectedApplication = await tx.hostApplication.update({
+                where: { id: applicationId },
+                data: {
+                    status: HostApplicationStatus.REJECTED,
+                    reviewedBy: adminEmail,
+                    reviewedAt: new Date(),
+                    feedback: data.feedback || ""
+                }
             });
 
             return {
                 success: true,
-                message: "Application rejected successfully."
+                message: "Application rejected successfully.",
+                data: rejectedApplication
             };
         }
 

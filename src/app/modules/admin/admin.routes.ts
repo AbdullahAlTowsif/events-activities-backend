@@ -1,6 +1,8 @@
 import express from 'express';
 import { AdminController } from './admin.controller';
 import auth from '../../middlewares/auth';
+import validateRequest from '../../middlewares/validateRequest';
+import { updateUserValidation } from './admin.validation';
 import { UserRole } from '@prisma/client';
 
 const router = express.Router();
@@ -20,6 +22,7 @@ router.get(
 router.patch(
     '/person/:id',
     auth(UserRole.ADMIN),
+    validateRequest(updateUserValidation),
     AdminController.updatePersonIntoDB // Generic update
 );
 
@@ -32,7 +35,7 @@ router.delete(
 router.delete(
     '/person/:id',
     auth(UserRole.ADMIN),
-    AdminController.deletePersonFromDB // Generic hard delete
+    AdminController.softDeletePersonFromDB // Hard delete repointed to soft delete (H6)
 );
 
 // User management routes

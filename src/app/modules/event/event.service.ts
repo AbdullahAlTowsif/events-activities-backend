@@ -1,5 +1,7 @@
-import { Event, EventStatus, JoinStatus, Prisma, UserRole } from "@prisma/client";
+import { Event, EventStatus, JoinStatus, PaymentStatus, Prisma, UserRole } from "@prisma/client";
+import { stripe } from "../../helper/stripe";
 import { fileUploader } from "../../helper/fileUploader";
+import { publicHostSelect, publicUserSelect } from "../../utils/publicSelects";
 import { Request } from "express";
 import { IPaginationOptions } from "../../interfaces/pagination";
 import { paginationHelper } from "../../helper/paginationHelper";
@@ -13,7 +15,7 @@ const createEvent = async (hostEmail: string, req: Request): Promise<Event> => {
     const isEventExists = await prisma.event.findFirst({
         where: {
             title: req.body.title,
-            hostEmail: req.body.hostEmail,
+            hostEmail: hostEmail,
             type: req.body.type,
             location: req.body.location
         }
@@ -109,9 +111,15 @@ const getAllEvent = async (params: any, options: IPaginationOptions) => {
             currency: true,
             status: true,
             images: true,
-            host: true,
-            payments: true,
-            participants: true,
+            host: {
+                select: publicHostSelect
+            },
+            _count: {
+                select: {
+                    payments: true,
+                    participants: true,
+                }
+            },
             createdAt: true,
             updatedAt: true,
         }
@@ -138,15 +146,21 @@ const getEventById = async (id: string): Promise<Event | null> => {
             id,
         },
         include: {
-            host: true,
+            host: {
+                select: publicHostSelect
+            },
             participants: {
                 include: {
-                    user: true
+                    user: {
+                        select: publicUserSelect
+                    }
                 }
             },
             payments: {
                 include: {
-                    user: true
+                    user: {
+                        select: publicUserSelect
+                    }
                 }
             },
         },
@@ -202,6 +216,18 @@ const deleteEvent = async (eventId: string, user: JwtPayload) => {
 
     // Transaction - rollback safe
     const result = await prisma.$transaction(async (tx) => {
+        // Refuse deletion when money is involved — paid enrollments must be refunded first (M7)
+        const paidParticipants = await tx.participant.count({
+            where: { eventId, paid: true }
+        });
+
+        if (paidParticipants > 0) {
+            throw new ApiError(
+                httpStatus.BAD_REQUEST,
+                "Cannot delete an event with paid participants. Refund or remove them first."
+            );
+        }
+
         // Delete participants
         await tx.participant.deleteMany({
             where: { eventId },
@@ -224,10 +250,18 @@ const deleteEvent = async (eventId: string, user: JwtPayload) => {
 
 const joinEvent = async (eventId: string, userEmail: string) => {
     return await prisma.$transaction(async (tx) => {
-        // 1. Get event with participants count
+        // 1. Get event with confirmed participant count
         const event = await tx.event.findUnique({
             where: { id: eventId },
-            include: { participants: true }
+            include: {
+                _count: {
+                    select: {
+                        participants: {
+                            where: { status: JoinStatus.ACCEPTED }
+                        }
+                    }
+                }
+            }
         });
 
         if (!event) {
@@ -239,20 +273,17 @@ const joinEvent = async (eventId: string, userEmail: string) => {
             throw new ApiError(httpStatus.BAD_REQUEST, "Event is not open for joining");
         }
 
-        // 3. Host cannot join own event
-        if (event.hostEmail === undefined) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "Host email missing in event");
+        // 3. Cannot join an event that has already started (H8)
+        if (event.dateTime <= new Date()) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Event has already started");
         }
 
-        const host = await tx.host.findUnique({
-            where: { email: event.hostEmail }
-        });
-
-        if (host && host.id === userEmail) {
+        // 4. Host cannot join own event (H2)
+        if (event.hostEmail === userEmail) {
             throw new ApiError(httpStatus.BAD_REQUEST, "You cannot join your own event");
         }
 
-        // 4. Prevent duplicate join
+        // 5. Prevent duplicate join
         const alreadyJoined = await tx.participant.findFirst({
             where: {
                 userEmail,
@@ -264,40 +295,35 @@ const joinEvent = async (eventId: string, userEmail: string) => {
             throw new ApiError(httpStatus.BAD_REQUEST, "You have already joined this event");
         }
 
-        // 5. Max participants check
+        // 6. Max participants check — counts only ACCEPTED enrollments (H8)
         if (
             event.maxParticipants &&
-            event.participants.length >= event.maxParticipants
+            event._count.participants >= event.maxParticipants
         ) {
             throw new ApiError(httpStatus.BAD_REQUEST, "Event is full");
         }
 
-        // 6. Create participant
+        // 7. Create participant. Paid events stay PENDING until payment completes via
+        //    POST /api/payment/init/:eventId; free events are accepted immediately (H3).
+        const needsPayment = event.joiningFee > 0;
         const participant = await tx.participant.create({
             data: {
                 userEmail,
                 eventId,
-                status: JoinStatus.ACCEPTED,
-                paid: event.joiningFee === 0
+                status: needsPayment ? JoinStatus.PENDING : JoinStatus.ACCEPTED,
+                paid: !needsPayment
             }
         });
 
-        let payment = null;
-
-        // 7. Create payment if fee exists
-        if (event.joiningFee > 0) {
-            payment = await tx.payment.create({
-                data: {
-                    userEmail,
-                    eventId,
-                    amount: event.joiningFee,
-                    currency: event.currency,
-                    status: "PENDING"
-                }
+        // 8. Transition event to FULL the moment capacity is reached (H8)
+        if (event.maxParticipants && event._count.participants + 1 >= event.maxParticipants) {
+            await tx.event.update({
+                where: { id: eventId },
+                data: { status: EventStatus.FULL }
             });
         }
 
-        return { participant, payment };
+        return { participant, payment: null };
     });
 };
 
@@ -328,8 +354,7 @@ const leaveEvent = async (eventId: string, userEmail: string) => {
             );
         }
 
-        // ⚠️ OPTIONAL RULE:
-        // If event already started (DateTime < now), prevent leaving
+        // ⚠️ If event already started (DateTime < now), prevent leaving
         if (event.dateTime < new Date()) {
             throw new ApiError(
                 httpStatus.BAD_REQUEST,
@@ -337,17 +362,43 @@ const leaveEvent = async (eventId: string, userEmail: string) => {
             );
         }
 
-        // 3. Delete participant record
+        // 3. Refund paid enrollments via Stripe before releasing the seat (H4)
+        let refunded = false;
+
+        const payment = participant.paid && participant.paymentId
+            ? await tx.payment.findFirst({
+                where: {
+                    id: participant.paymentId,
+                    status: PaymentStatus.SUCCESS,
+                },
+            })
+            : null;
+
+        if (payment?.stripePaymentIntentId) {
+            await stripe.refunds.create({
+                payment_intent: payment.stripePaymentIntentId,
+            });
+
+            await tx.payment.update({
+                where: { id: payment.id },
+                data: {
+                    status: PaymentStatus.REFUNDED,
+                    updatedAt: new Date(),
+                },
+            });
+
+            refunded = true;
+        }
+
         await tx.participant.delete({
             where: { id: participant.id },
         });
 
-        // ⚠️ If paid = true, later implement refund
-        // For now return info
         return {
             eventId,
             userEmail,
-            refunded: participant.paid ? true : false,
+            refunded,
+            needsRefund: participant.paid && !refunded,
         };
     });
 };
@@ -367,12 +418,27 @@ const getParticipants = async (
         throw new ApiError(httpStatus.NOT_FOUND, "Event not found");
     }
 
-    // 2. Authorization: must be HOST of event OR ADMIN OR USER
-    if (requesterRole !== UserRole.ADMIN && requesterRole !== UserRole.USER && event.hostEmail !== requesterEmail) {
+    // 2. Authorization: HOST of this event or ADMIN; regular USERS must be ACCEPTED participants (M2)
+    const isHostOrAdmin = requesterRole === UserRole.ADMIN || event.hostEmail === requesterEmail;
+
+    if (requesterRole === UserRole.HOST && !isHostOrAdmin) {
         throw new ApiError(
             httpStatus.FORBIDDEN,
             "You are not authorized to view participants"
         );
+    }
+
+    if (requesterRole === UserRole.USER) {
+        const participation = await prisma.participant.findFirst({
+            where: { eventId, userEmail: requesterEmail },
+        });
+
+        if (!participation) {
+            throw new ApiError(
+                httpStatus.FORBIDDEN,
+                "You can only view participants of events you have joined"
+            );
+        }
     }
 
     // 3. Fetch participants with user details
@@ -394,7 +460,21 @@ const getParticipants = async (
         orderBy: { createdAt: "desc" },
     });
 
-    return participants;
+    // 4. Trim contact/address/gender for non-host/non-admin callers (M2)
+    if (isHostOrAdmin) {
+        return participants;
+    }
+
+    return participants.map((p) => ({
+        ...p,
+        user: p.user
+            ? {
+                name: p.user.name,
+                email: p.user.email,
+                profilePhoto: p.user.profilePhoto,
+            }
+            : p.user,
+    }));
 };
 
 
@@ -486,7 +566,17 @@ const createReview = async (
 const getHostByEmail = async (email: string) => {
     const host = await prisma.host.findUnique({
         where: { email },
-        include: {
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            profilePhoto: true,
+            contactNumber: true,
+            about: true,
+            gender: true,
+            interests: true,
+            createdAt: true,
+            updatedAt: true,
             events: {
                 select: {
                     id: true,

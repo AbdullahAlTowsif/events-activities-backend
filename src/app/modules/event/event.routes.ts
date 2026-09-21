@@ -1,9 +1,11 @@
 import { NextFunction, Request, Response, Router } from "express";
 import auth from "../../middlewares/auth";
+import validateRequest from "../../middlewares/validateRequest";
 import { eventValidation } from "./event.validation";
 import { EventController } from "./event.controller";
 import { UserRole } from "@prisma/client";
 import { fileUploader } from "../../helper/fileUploader";
+import parseMultipartBody from "../../utils/parseMultipartBody";
 
 const router = Router();
 
@@ -12,10 +14,12 @@ router.post(
     auth(UserRole.HOST),
     fileUploader.upload.single('file'),
     (req: Request, res: Response, next: NextFunction) => {
-        console.log(req.body.data);
-        req.body = eventValidation.createEventValidationSchema.parse(JSON.parse(req.body.data))
-        // console.log("req.body from routes ---->", req.body);
-        return EventController.createEvent(req, res, next)
+        try {
+            req.body = eventValidation.createEventValidationSchema.parse(parseMultipartBody(req.body.data))
+            return EventController.createEvent(req, res, next)
+        } catch (err) {
+            next(err);
+        }
     }
 );
 
@@ -35,6 +39,7 @@ router.get('/:id', EventController.getEventById);
 router.patch(
     '/update/:id',
     auth(UserRole.HOST, UserRole.ADMIN),
+    validateRequest(eventValidation.updateEventValidationSchema),
     EventController.updateEventById
 );
 
@@ -62,6 +67,7 @@ router.get(
 router.post(
     "/:id/review",
     auth(UserRole.USER, UserRole.ADMIN),
+    validateRequest(eventValidation.createReviewValidationSchema),
     EventController.createReview
 );
 

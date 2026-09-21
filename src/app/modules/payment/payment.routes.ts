@@ -13,15 +13,8 @@ router.post(
 
 router.get(
   "/verify",
-  auth(UserRole.USER, UserRole.HOST, UserRole.ADMIN), // Optional: you might want to make this public
+  auth(UserRole.USER, UserRole.HOST, UserRole.ADMIN), // only authenticated users
   PaymentController.verifyPayment
-);
-
-
-// In payment.routes.ts
-router.post(
-  "/manual-webhook",
-  PaymentController.manualWebhook
 );
 
 export const PaymentRoutes = router;
