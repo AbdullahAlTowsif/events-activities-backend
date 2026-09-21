@@ -6,7 +6,6 @@ import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import pick from '../../helper/pick';
 import { UserRole } from '@prisma/client';
-import { email } from 'zod';
 
 const getAllAdmin = catchAsync(async (req: Request, res: Response) => {
     const filters = pick(req.query, adminFilterableFields);

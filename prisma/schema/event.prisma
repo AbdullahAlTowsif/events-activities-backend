@@ -32,4 +32,6 @@ model Participant {
 
   paymentId String?
   payment   Payment? @relation(fields: [paymentId], references: [id])
+
+  @@unique([eventId, userEmail])
 }

@@ -70,9 +70,22 @@ const createUser = z.object({
     })
 });
 
+// Whitelist for self-service profile updates (C4/H5).
+// role / email / password / isDeleted are intentionally excluded.
+const updateMyProfileValidationSchema = z.object({
+    name: z.string().min(3, "Name must be at least 3 characters long").max(50, "Name cannot exceed 50 characters").optional(),
+    profilePhoto: z.string().optional(),
+    contactNumber: z.string().optional(),
+    about: z.string().max(500, "About cannot exceed 500 characters").optional(),
+    address: z.string().max(200, "Address cannot exceed 200 characters").optional(),
+    gender: z.enum([Gender.MALE, Gender.FEMALE]).optional(),
+    interests: z.array(z.string().min(1, "Interest cannot be empty")).max(10, "Cannot have more than 10 interests").optional(),
+}).strict();
+
 
 export const userValidation = {
     createAdmin,
     createHost,
-    createUser
+    createUser,
+    updateMyProfileValidationSchema
 };

@@ -1,6 +1,7 @@
 import express, { Application, NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import cookieParser from "cookie-parser"
+import helmet from "helmet";
 import { envVars } from './app/config/env';
 import notFound from './app/middlewares/notFound';
 import router from './app/routes';
@@ -9,6 +10,7 @@ import globalErrorHandler from './app/middlewares/globalErrorHandler';
 
 const app: Application = express();
 
+app.use(helmet());
 
 app.use(cors({
     origin: ['http://localhost:3000', 'https://events-activities-frontend.vercel.app'],

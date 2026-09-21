@@ -1,6 +1,8 @@
 import * as bcrypt from 'bcryptjs';
 import { Secret } from "jsonwebtoken";
+import httpStatus from "http-status-codes";
 import { jwtHelper } from '../../middlewares/jwtHelper';
+import ApiError from '../../errors/ApiError';
 import { envVars } from '../../config/env';
 import prisma from '../../utils/prisma';
 
@@ -8,17 +10,22 @@ const loginPerson = async (payload: {
     email: string,
     password: string
 }) => {
-    const personData = await prisma.person.findUniqueOrThrow({
+    const personData = await prisma.person.findUnique({
         where: {
             email: payload.email,
             isDeleted: false
         }
     });
 
+    // Generic message for both "no account" and "wrong password" to prevent user enumeration
+    if (!personData) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid email or password");
+    }
+
     const isCorrectPassword: boolean = await bcrypt.compare(payload.password, personData.password);
 
     if (!isCorrectPassword) {
-        throw new Error("Password incorrect!")
+        throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid email or password");
     }
     const accessToken = jwtHelper.generateToken({
         // id: personData.id,
@@ -51,7 +58,7 @@ const refreshToken = async (token: string) => {
         decodedData = jwtHelper.verifyToken(token, envVars.JWT_REFRESH_SECRET as Secret);
     }
     catch (err) {
-        throw new Error("You are not authorized!")
+        throw new ApiError(httpStatus.UNAUTHORIZED, "You are not authorized!")
     }
 
     const personData = await prisma.person.findUniqueOrThrow({
@@ -96,7 +103,7 @@ const changePassword = async (user: any, payload: any) => {
     const isCorrectPassword: boolean = await bcrypt.compare(payload.oldPassword, personData.password);
 
     if (!isCorrectPassword) {
-        throw new Error("Password incorrect!")
+        throw new ApiError(httpStatus.UNAUTHORIZED, "Old password is incorrect!")
     }
 
     const hashedPassword: string = await bcrypt.hash(payload.newPassword, Number(envVars.BCRYPT_SALT_ROUND));
@@ -114,71 +121,6 @@ const changePassword = async (user: any, payload: any) => {
         message: "Password changed successfully!"
     }
 };
-
-// const forgotPassword = async (payload: { email: string }) => {
-//     const userData = await prisma.user.findUniqueOrThrow({
-//         where: {
-//             email: payload.email,
-//             status: UserStatus.ACTIVE
-//         }
-//     });
-
-//     const resetPassToken = jwtHelper.generateToken(
-//         { email: userData.email, role: userData.role },
-//         config.jwt.reset_pass_secret as Secret,
-//         config.jwt.reset_pass_token_expires_in as string
-//     )
-
-//     const resetPassLink = config.reset_pass_link + `?userId=${userData.id}&token=${resetPassToken}`
-
-//     await emailSender(
-//         userData.email,
-//         `
-//         <div>
-//             <p>Dear User,</p>
-//             <p>Your password reset link 
-//                 <a href=${resetPassLink}>
-//                     <button>
-//                         Reset Password
-//                     </button>
-//                 </a>
-//             </p>
-
-//         </div>
-//         `
-//     )
-// };
-
-// const resetPassword = async (token: string, payload: { id: string, password: string }) => {
-
-//     const userData = await prisma.user.findUniqueOrThrow({
-//         where: {
-//             id: payload.id,
-//             status: UserStatus.ACTIVE
-//         }
-//     });
-
-//     const isValidToken = jwtHelper.verifyToken(token, config.jwt.jwt_secret as Secret)
-
-//     if (!isValidToken) {
-//         throw new ApiError(httpStatus.FORBIDDEN, "Forbidden!")
-//     }
-
-//     // hash password
-//     const password = await bcrypt.hash(payload.password, Number(config.salt_round));
-
-//     // update into database
-//     await prisma.user.update({
-//         where: {
-//             id: payload.id
-//         },
-//         data: {
-//             password,
-//             needPasswordChange: false
-//         }
-//     })
-// };
-
 
 const getMe = async (user: any) => {
     const accessToken = user.accessToken;

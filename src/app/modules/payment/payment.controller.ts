@@ -7,7 +7,7 @@ import sendResponse from "../../utils/sendResponse";
 import { stripe } from "../../helper/stripe";
 import ApiError from "../../errors/ApiError";
 import prisma from "../../utils/prisma";
-import { JoinStatus, PaymentStatus } from "@prisma/client";
+import { JoinStatus, PaymentStatus, UserRole } from "@prisma/client";
 
 const initPayment = catchAsync(async (req: Request, res: Response) => {
 
@@ -17,33 +17,13 @@ const initPayment = catchAsync(async (req: Request, res: Response) => {
     }
     const userEmail = req.user?.email as string;
     if (!userEmail) {
-        return sendResponse(res, {
-            statusCode: httpStatus.UNAUTHORIZED,
-            success: false,
-            message: "Unauthorized: missing user email",
-            data: null
-        });
+        throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized: missing user email");
     }
 
-    // choose amount: if you want to use event.joiningFee, you can fetch it in service.
-    // here we expect client sends amount (or compute server-side)
-    const amount = Number(req.body.amount ?? req.body.joiningFee ?? 0);
-    if (!amount || amount <= 0) {
-        return sendResponse(res, {
-            statusCode: httpStatus.BAD_REQUEST,
-            success: false,
-            message: "Invalid amount",
-            data: null
-        });
-    }
-
-    const currency = (req.body.currency as string) ?? "BDT";
-
+    // Amount and currency are derived server-side from the event (C2) — req.body is ignored
     const result = await PaymentService.createPaymentAndSession({
         eventId,
         userEmail,
-        amount,
-        currency,
     });
 
     sendResponse(res, {
@@ -91,12 +71,21 @@ const stripeWebhook = catchAsync(async (req: Request, res: Response) => {
 });
 
 
-const verifyPayment = catchAsync(async (req: Request, res: Response) => {
+const verifyPayment = catchAsync(async (req: Request & { user?: any }, res: Response) => {
     const sessionId = req.query.session_id as string;
+    const userEmail = req.user?.email as string;
+    const isAdmin = req.user?.role === UserRole.ADMIN;
 
     if (!sessionId) {
         throw new ApiError(httpStatus.BAD_REQUEST, "Session ID required");
     }
+
+    if (!userEmail) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, "User not authenticated");
+    }
+
+    // Non-admins may only inspect their own payments (C6)
+    const ownedFilter = isAdmin ? {} : { userEmail };
 
     console.log('Looking for payment with sessionId:', sessionId);
 
@@ -104,6 +93,7 @@ const verifyPayment = catchAsync(async (req: Request, res: Response) => {
     const payment = await prisma.payment.findFirst({
         where: {
             stripeSessionId: sessionId,
+            ...ownedFilter,
         },
         include: {
             participants: {
@@ -198,6 +188,7 @@ const verifyPayment = catchAsync(async (req: Request, res: Response) => {
     const paymentByIntent = await prisma.payment.findFirst({
         where: {
             stripePaymentIntentId: sessionId,
+            ...ownedFilter,
         },
         include: {
             participants: {
@@ -231,64 +222,8 @@ const verifyPayment = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-const manualWebhook = catchAsync(async (req: Request, res: Response) => {
-    const sessionId = req.query.session_id as string;
-
-    if (!sessionId) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Session ID required");
-    }
-
-    console.log('Manual webhook trigger for session:', sessionId);
-
-    try {
-        // Retrieve session from Stripe
-        const session = await stripe.checkout.sessions.retrieve(sessionId);
-
-        // Check if payment was successful
-        if (session.payment_status === 'paid') {
-            // Create a proper Stripe Event object
-            const mockEvent: Stripe.Event = {
-                id: 'evt_' + Date.now(),
-                object: 'event',
-                api_version: '2023-10-16', // Use your Stripe API version
-                created: Math.floor(Date.now() / 1000),
-                livemode: false, // Test mode
-                pending_webhooks: 0,
-                request: {
-                    id: 'req_' + Date.now(),
-                    idempotency_key: 'manual_' + Date.now()
-                },
-                type: 'checkout.session.completed',
-                data: {
-                    object: session
-                }
-            } as Stripe.Event;
-
-            // Process the webhook
-            await PaymentService.handleStripeWebhookEvent(mockEvent);
-
-            sendResponse(res, {
-                statusCode: httpStatus.OK,
-                success: true,
-                message: "Webhook processed manually",
-                data: {
-                    sessionId: session.id,
-                    paymentStatus: session.payment_status
-                }
-            });
-        } else {
-            throw new ApiError(httpStatus.BAD_REQUEST, `Payment status is ${session.payment_status}, not 'paid'`);
-        }
-
-    } catch (error: any) {
-        console.error('Manual webhook error:', error);
-        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, error.message || 'Failed to process webhook');
-    }
-});
-
 export const PaymentController = {
     initPayment,
     stripeWebhook,
     verifyPayment,
-    manualWebhook
 };
